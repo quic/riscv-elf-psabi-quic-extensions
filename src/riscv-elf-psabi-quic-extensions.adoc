@@ -1,0 +1,86 @@
+// Copyright (c) 2024, Qualcomm Technologies, Inc. All rights reserved.
+// SPDX-License-Identifier: CC-BY-4.0
+= RISC-V ELF psABI - Qualcomm Extensions
+:company: Qualcomm Technologies, Inc.
+:url-riscv: https://riscv.org
+:doctype: book
+:docgroup: RISC-V Toolchain Team
+:description: RISC-V ELF psABI - Qualcomm Extensions
+:revdate: 2024-12-09
+:revnumber: 0.1
+:revremark: Development
+:revinfo:
+:preface-title: Preamble
+:colophon:
+:appendix-caption: Appendix
+// https://docs.asciidoctor.org/asciidoc/latest/macros/images-directory/
+:imagesdir: ../docs-resources/images
+// Settings:
+:experimental:
+:reproducible:
+//:WaveDromEditorApp: app/wavedrom-editor.app
+:imagesoutdir: images
+//:srcdir: src
+:bibtex-file: src/psabi.bib
+:bibtex-order: alphabetical
+:bibtex-style: apa
+:icons: font
+:lang: en
+:listing-caption: Listing
+:sectnums:
+:toc: left
+:toclevels: 4
+:source-highlighter: pygments
+ifdef::backend-pdf[]
+:source-highlighter: coderay
+endif::[]
+:data-uri:
+:hide-uri-scheme:
+:stem: latexmath
+:footnote:
+:xrefstyle: short
+
+[preface]
+== Document Status
+[WARNING]
+.This document is in the link:http://riscv.org/spec-state[Development state]
+====
+Expect potential changes. This draft specification is likely to evolve.
+Implementations based on this draft may not conform to the final version of this
+specification.
+====
+
+// [preface]
+// == List of figures
+// list-of::image[hide_empty_section=true, enhanced_rendering=true]
+
+[preface]
+== List of tables
+list-of::table[hide_empty_section=true, enhanced_rendering=true]
+
+// [preface]
+// == List of listings
+// list-of::listing[hide_empty_section=true, enhanced_rendering=true]
+
+[preface]
+== Copyright and license information
+
+Copyright 2024, Qualcomm Technologies, Inc. All rights reserved.
+
+This specification is licensed under the Creative Commons Attribution 4.0
+International License (CC-BY-4.0). The full license text is available at
+https://creativecommons.org/licenses/by/4.0/.
+
+[preface]
+include::contributors.adoc[]
+
+include::intro.adoc[]
+
+include::quic-extensions.adoc[]
+
+include::relaxations.adoc[]
+
+// The index must precede the bibliography
+include::index.adoc[]
+
+include::bibliography.adoc[]

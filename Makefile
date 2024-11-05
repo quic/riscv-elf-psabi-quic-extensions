@@ -1,4 +1,4 @@
-# Makefile for RISC-V Doc Template
+# Makefile for RISC-V ELF psABI - Qualcomm Extensions
 #
 # This work is licensed under the Creative Commons Attribution-ShareAlike 4.0
 # International License. To view a copy of this license, visit
@@ -10,14 +10,14 @@
 # Description:
 #
 # This Makefile is designed to automate the process of building and packaging
-# the Doc Template for RISC-V Extensions.
+# Qualcomm's Extensions to the RISC-V ELF psABI.
 
 DOCS := \
-	spec-sample.adoc
+	riscv-elf-psabi-quic-extensions.adoc
 
 DATE ?= $(shell date +%Y-%m-%d)
-VERSION ?= v0.0.0
-REVMARK ?= Draft
+VERSION ?= 0.1
+REVMARK ?= Development
 DOCKER_IMG := riscvintl/riscv-docs-base-container-image:latest
 ifneq ($(SKIP_DOCKER),true)
 	DOCKER_IS_PODMAN = \
@@ -51,13 +51,13 @@ OPTIONS := --trace \
            -a revremark=${REVMARK} \
            -a revdate=${DATE} \
            -a pdf-fontsdir=docs-resources/fonts \
-           -a pdf-theme=docs-resources/themes/riscv-pdf.yml \
+           -a pdf-theme=themes/riscv-qualcomm-pdf.yml \
            $(XTRA_ADOC_OPTS) \
-		   -D build \
+           -D build \
            --failure-level=ERROR
 REQUIRES := --require=asciidoctor-bibtex \
             --require=asciidoctor-diagram \
-			--require=asciidoctor-lists \
+            --require=asciidoctor-lists \
             --require=asciidoctor-mathematical
 
 .PHONY: all build clean build-container build-no-container build-docs

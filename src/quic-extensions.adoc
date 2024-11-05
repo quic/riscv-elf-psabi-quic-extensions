@@ -1,0 +1,139 @@
+// Copyright (c) 2024, Qualcomm Technologies, Inc. All rights reserved.
+// SPDX-License-Identifier: CC-BY-4.0
+[[quic-extensions]]
+== Qualcomm Extensions
+
+The following section makes additions to the tables in the RISC-V ELF psABI cite:[riscvelfpsabi]. The descriptions below are given only where the Qualcomm Extensions define fields or values reserved in that specification for nonstandard use. Encoding and enumeration spaces reserved for use by standard extensions are denoted as _Standard_ in this specification.
+
+=== ELF File Header
+
+This section extends the "ELF File Header" section in the RISC-V ELF psABI specification.
+
+e_ident:: The Qualcomm Extensions may only be used where the value of `e_ident.EI_CLASS` is `ELFCLASS32`, in addition to the restrictions already present in the RISC-V ELF psABI. This restrictions may be relaxed in future.
+
+e_flags:: This field allocates 8 bits for non-standard extensions. This psABI Extension does not allocate any of these bits.
+
+NOTE: This does not automatically make this psABI Extension compatible with other non-standard psABI Extensions.
+
+=== Relocations
+
+This section extends the "Relocations" section in the RISC-V ELF psABI specification.
+
+Qualcomm uses the `QUALCOMM` symbol name with `R_RISCV_VENDOR` relocations cite:[riscvtoolchainconventions], which must preceed any relocation code below.
+
+All ELF relocation code names defined by this specification have the prefix `R_RISCV_QC_`.
+
+NOTE: This table should be read as an addition to the "Relocation types" table in the RISC-V ELF psABI.
+
+.Additional relocation types
+[cols=">3,6,3,6,11"]
+[width=100%]
+|===
+| Enum          | ELF Reloc Type   | Type     | Field / Calculation  | Description
+
+.2+| 0-191   .2+| _Standard_    .2+| _Varies_ | _Varies_          .2+| Defined in the RISC-V ELF psABI
+                                             <|
+.2+| 192     .2+| `LO20_U`      .2+| Static   | _U-Type_          .2+| Low 20 bits of 32-bit absolute address
+                                             <| S + A
+.2+| 193     .2+| `E_BRANCH`    .2+| Static   | _QC.EB-Type_      .2+| 12-bit PC-relative branch offset (48-bit instruction)
+                                             <| S + A - P
+.2+| 194     .2+| `E_32`        .2+| Static   | _QC.EAI-Type_     .2+| 32-bit Absolute address
+                                             <| S + A
+.2+| 195     .2+| `E_JUMP_PLT`  .2+| Static   | _QC.EJ-Type_      .2+| 32-bit PC-relative function call (via PLT)
+                                             <| S + A - P
+.2+| 196-255 .2+| *Reserved*    .2+|          |                   .2+| Reserved for future use in the Qualcomm Extensions.
+                                             <|
+|===
+
+==== Calculation Symbols
+
+Calculation symbols should be interpreted exactly as they are defined in the RISC-V ELF psABI.
+
+==== Field Symbols
+
+NOTE: This table should be read as an addition to the "Variables used in relocation fields" table in the RISC-V ELF psABI.
+
+.Additional variables used in relocation fields
+[%autowidth]
+|===
+| Field         | Description
+
+| _QC.EAI-Type_ | Specifies the immediate field in a QC.EAI-type instruction
+| _QC.EB-Type_  | Specifies the immediate field used for the branch target offset in an QC.EB-type instruction
+| _QC.EJ-Type_  | Specifies the immediate field used for the jump target offset in an QC.EJ-type instruction
+| _QC.EI-Type_  | Specifies the immediate field in an QC.EI-type instruction
+| _QC.ES-Type_  | Specifies the immediate field in an QC.ES-type instruction
+|===
+
+The new instruction types starting _QC_ are defined in he `Xqci` specification cite:[xqcispec].
+
+=== Code Sequences
+
+In addition to the code sequences documented in the RISC-V ELF psABI, the following sequences may also be used by a compiler following this extension, when the corresponding architecture extensions have been enabled.
+
+NOTE: Relocations not used in these code sequences are designed to be used from assembly files, rather than by compilers, as they have restrictions on the addresses that can be materialized.
+
+==== Absolute Addresses
+
+[%unbreakable]
+--
+
+32-bit absolute addresses in position dependent code can be loaded with a `qc.e.li` instruction (part of `Xqcili`) and the corresponding relocation `R_RISCV_QC_E_32`.
+
+[,asm]
+----
+    qc.e.li a0, symbol+addend   # R_RISCV_VENDOR QUALCOMM
+                                # R_RISCV_QC_E_32 symbol, addend
+----
+--
+
+NOTE: This sequence is only 6 bytes (as opposed to an `lui`/`addi` pair which is 8 bytes). The size overhead of the pair can be reduced in some circumstances, such as when the `addi` is folded into a load or store instruction or when the `lui` is shared between multiple materialisations, so this is not always beneficial.
+
+==== Procedure Calls
+
+[%unbreakable]
+--
+Unconditional 48-bit jump (_QC.EJ-Type_) instructions (in `Xqcilb`) have a `R_RISCV_QC_E_JUMP_PLT` relocation that can represent an even signed 32-bit offset (-2GiB to +2GiB-2) from PC.
+
+Just like `R_RISCV_CALL_PLT`, it is up to the linker to decide whether this relocation needs a PLT entry, or can directly use the procedure's address.
+
+[,asm]
+----
+    # qc.ecall symbol@plt
+    qc.e.jal symbol   # R_RISCV_VENDOR QUALCOMM
+                      # R_RISCV_QC_E_JUMP_PLT symbol
+
+    # qc.e.tail symbol@plt
+    qc.e.j symbol   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_JUMP_PLT symbol
+----
+--
+
+==== PC-Relative Branches
+
+[%unbreakable]
+--
+Conditional 48-bit branch (_QC.EB-type_) instructions (in `Xqcibi`) have a `R_RISCV_QC_E_BRANCH` relocation that can represent an even signed 13-bit offset (-4096 to +4094) from PC.
+
+[,asm]
+----
+    qc.e.beqi a0, 0xFF00, symbol+addend   # R_RISCV_VENDOR QUALCOMM
+                                          # R_RISCV_QC_E_BRANCH symbol, addend
+----
+--
+
+[%unbreakable]
+--
+Conditional branch immediate (B-type) instructions (in `Xqcibi`) use the standard `R_RISCV_BRANCH` relocation, which can represent an even signed 13-bit offset (-4096 to +4094) from PC. These use a standard relocation code, so do not need a `R_RISCV_VENDOR` relocation.
+
+[,asm]
+----
+    qc.beqi a0, 0xFF, symbol+addend  # R_RISCV_BRANCH symbol, addend
+----
+--
+
+=== Attributes
+
+The RISC-V ELF psABI defines a method for providing additional information about object files that a linker or runtime loader can use to ensure the ELF files are compatible. Attributes with a tag number above 32768 are reserved for non-standard extensions.
+
+This psABI Extension does not allocate any non-standard attribute tags.

@@ -1,8 +1,5 @@
 # Governance
-This project for the template specification is governed by the Documentation SIG.
 
-The group can be joined by RISC-V members at: https://lists.riscv.org/g/sig-documentation.
+This specification extension is governed by the RISC-V Toolchain Team at Qualcomm.
 
-Mailing list archives are available at: https://lists.riscv.org/g/sig-documentation/topics.
-
-**_NOTE:_** PROJECTS BUILT USING THE TEMPLATE SHOULD UPDATE THE ABOVE TEXT AS-NEEDED.
+There are no public meetings of this team, but questions are accepted via this repository.

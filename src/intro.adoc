@@ -1,43 +1,43 @@
+// Copyright (c) 2024, Qualcomm Technologies, Inc. All rights reserved.
+// SPDX-License-Identifier: CC-BY-4.0
 [[intro]]
 == Introduction
 
-Lorem ipsum indexterm:[Lorem ipsum] dolor sit amet, consectetur adipiscing elit, sed do *eiusmod tempor* incididunt ut labore et dolore magna aliqua. Felis imperdiet proin fermentum leo vel orci porta. Volutpat lacus laoreet non curabitur indexterm:[curabitur] gravida indexterm:[gravida]. Posuere urna nec tincidunt praesent semper feugiat nibh. Elit ``ullamcorper`` dignissim cras tincidunt lobortis. Malesuada fames ac turpis egestas integer eget. Tristique sollicitudin nibh sit amet commodo. Sed felis eget velit aliquet. Sit amet aliquam id diam maecenas ultricies mi. Consectetur purus ut faucibus pulvinar. Lectus urna duis convallis convallis tellus id. Fermentum iaculis eu non diam. Feugiat in fermentum posuere urna nec tincidunt praesent semper feugiat. Urna nec tincidunt praesent semper feugiat nibh.
+The RISC-V ELF psABI cite:[riscvelfpsabi] makes specific allocations for non-standard extensions. This document is specifies how Qualcomm is using this non-standard extension space for Qualcomm's non-standard (but public) RISC-V ISA extensions.
 
-.Nonsensical code
-[source, python]
-----
-def banana_apple():
-    x = "banana"
-    y = "apple"
-    for i in range(len(x)):
-        print(x[i], y[i])
-        z = x + y
-    return z
+Currently, this document includes ABI extensions that cover the following of Qualcomm's non-standard RISC-V ISA extension specifications:
 
-result = banana_apple()
-print("Result:", result)
-----
-
-Commodo viverra maecenas accumsan lacus. Vulputate odio ut enim blandit indexterm:[blandit] volutpat maecenas volutpat blandit. Urna porttitor rhoncus dolor purus non. Tellus mauris a diam maecenas sed. Vitae auctor eu augue ut lectus. Ridiculus mus mauris vitae ultricies leo integer. Consequat semper viverra nam *libero* justo laoreet sit amet. Pellentesque pulvinar pellentesque habitant morbi tristique senectus et netus et. Ac placerat vestibulum lectus mauris ``ultrices`` eros in cursus turpis. Accumsan in nisl nisi scelerisque eu ultrices vitae. Cras ornare arcu dui vivamus. Vitae congue mauris rhoncus aenean. Consequat mauris nunc congue nisi vitae suscipit tellus. Tempus egestas sed sed risus pretium quam vulputate dignissim. Quis varius quam quisque id diam vel. Mattis nunc sed blandit libero volutpat sed cras ornare arcu. Amet mauris commodo quis imperdiet massa tincidunt nunc.
+* `Xqci` v0.4 cite:[xqcispec], which includes:
+** `Xqcia` v0.2
+** `Xqciac` v0.2
+** `Xqcibi` v0.2
+** `Xqcibm` v0.2
+** `Xqcicli` v0.2
+** `Xqcicm` v0.2
+** `Xqcics` v0.2
+** `Xqcicsr` v0.2
+** `Xqciint` v0.2
+** `Xqcilb` v0.2
+** `Xqcili` v0.2
+** `Xqcilia` v0.2
+** `Xqcilo` v0.2
+** `Xqcilsm` v0.2
+** `Xqcisls` v0.2
 
 [NOTE]
+[%unbreakable]
 ====
-The name RISC-V indexterm:[RISC-V] was chosen to represent the fifth major RISC ISA design from UC Berkeley (RISC-I cite:[riscI-isca1981], RISC-II cite:[Katevenis:1983], SOAR cite:[Ungar:1984], and SPUR cite:[spur-jsscc1989] were the first four). We also pun on the use of the Roman numeral "V" to signify "variations" and "vectors", as support for a range of architecture research, including various data-parallel accelerators, is an explicit goal of the ISA design.
+We have taken a few specific directions for this psABI Extension.
+
+The `Xqci` extension is broadly only defined for the RV32 base ISA, so this ABI is designed for the same. We have not considered 64-bit RISC-V implementations at this time.
+
+Together with the `Xqci` extension designers, we settled on using `e.` to denote 48-bit instructions (you could read this as "extended"), much as the standard ISA uses `c.` to denote 16-bit instructions (read as "compressed"). We follow this through when denoting instruction types which start with _QC.E_, and including "E_" in the relevant vendor relocation names.
+
+We have added brand new (nonstandard) relocations for the 48-bit instructions in `Xqci`. There are two different sets of pertinent instructions in these cases:
+
+* QC.EB-type instructions (such as `qc.e.beqi`) where the PC-relative offset is laid out in fields that exactly match the standard conditional branch instruction (i.e. `beq`). Note these instructions have both an `simm` field -- which is sign-extended and compared -- and an `imm` field - which will be added to the PC to calculate where to branch to. We cannot use `R_RISCV_BRANCH` relocations to fill in the PC-relative offset (though the bits being written by the relocation are identical), because the linker relaxation process needs to know the full extents of the affected instruction, rather than just which bits it might be updating. Therefore we add a new relocation for these instructions.
+
+* QC.EAI-type instructions (such as `qc.e.li`) where the 32-bit immediate is laid out in a contiguous field from bits 16-47 of the instruction. We cannot use `R_RISCV_32` relocations here, because this is a data relocation, and on big endian systems instructions remain little-endian. Using this relocation would also cause us the same issues with linker relaxation, as we would not be able to easily work out the instruction extents. Therefore, we add a relocations for these instructions.
+
+We have made no additions to Dynamic relocations as `Xqci` does not add any new whole-program features, just new instructions.
 ====
-
-=== Sub Section of Introduction
-
-Pellentesque habitant morbi *tristique* senectus et netus et. Aliquam purus sit amet luctus. Odio eu ``feugiat`` pretium nibh ipsum consequat nisl vel. Euismod lacinia at quis risus sed vulputate odio ut. Eu sem integer vitae justo eget. Cursus euismod quis viverra nibh. Tempus egestas sed sed risus. Quis imperdiet massa tincidunt nunc pulvinar. Id venenatis a condimentum vitae sapien pellentesque habitant.
-
-.Nonsensical wavedrom signals
-[wavedrom, svg]
-....
-{
-  "signal": [
-    { "name": "Clock", "wave": "P.......P" },
-    { "name": "Data", "wave": "x.x..xx.x" },
-    { "name": "Control", "wave": "0.1.01..0" },
-    { "name": "Error", "wave": "zZzZzZzZz" }
-  ]
-}
-....

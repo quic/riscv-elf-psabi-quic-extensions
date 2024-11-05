@@ -1,0 +1,473 @@
+// Copyright (c) 2024, Qualcomm Technologies, Inc. All rights reserved.
+// SPDX-License-Identifier: CC-BY-4.0
+[[relaxations]]
+=== Additional Linker Relaxation Types
+
+The following linker relaxation types are allowed in this psABI, in addition to those defined in the RISC-V ELF psABI.
+
+All these linker relaxations have an implicit requirement that the base architecture is RV32 (like the rest of this psABI extension). Any specific ISA Extensions required to perform the relaxation are documented with each relaxation. The relocatable object's build attributes (if present) should be used to work out if an extension is present, rather than the link result object's merged build attributes.
+
+NOTE: These relaxations are defined to be applied once, rather than the linker relaxing a sequence or group it has already relaxed. We do not define a preferential order between relaxations, it is understood that the linker performing relaxation will always choose the smallest of the results for which all the conditions are satisfied. Candidates and results below are annotated with their code size (in bytes).
+
+==== Standard to Extended Function/Tail Call Relaxation
+
+  Target Relocation:: R_RISCV_CALL_PLT, R_RISCV_CALL
+
+  Description:: This relaxation type can relax `AUIPC+JALR` into `QC.E.J` or `QC.E.JAL`
+
+  Condition:: The offset between the relocated location and the target symbol or the PLT stub of the target symbol is within range of ±2GiB. The `rd` of the `JALR` must be `ra` or `x0`.
+
+  Extensions Required:: `Xqcilb`
+
+  Relaxation:: Instruction sequence associated with `R_RISCV_CALL_PLT` (or `R_RISCV_CALL`) can be rewritten into a single `QC.E.JAL` or `QC.E.J` (depending on the destination register of the `JALR`).
+
+NOTE: Using address of PLT stubs of the target symbol or address target symbol
+directly will be resolved by linker according to the visibility of the target
+symbol.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    auipc ra, 0      # R_RISCV_CALL_PLT symbol
+                     # R_RISCV_RELAX
+    jalr  ra, ra, 0
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.jal 0       # R_RISCV_VENDOR QUALCOMM
+                     # R_RISCV_QC_E_JUMP_PLT symbol
+    # 6 bytes
+----
+--
++
+[%unbreakable]
+--
+This can also be used for tail calls, where the destination register of `JALR` is `X0`.
+
+Relaxation candidate:
+[,asm]
+----
+    auipc ra, 0      # R_RISCV_CALL_PLT symbol
+                     # R_RISCV_RELAX
+    jalr  x0, ra, 0
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.j 0         # R_RISCV_VENDOR QUALCOMM
+                     # R_RISCV_QC_E_JUMP_PLT symbol
+    # 6 bytes
+----
+--
+
+
+
+==== Extended to Standard Function/Tail Call Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_JUMP_PLT
+
+  Description:: This relaxation can relax `QC.E.J` or `QC.E.JAL` into `JAL`.
+
+  Condition:: The offset between the relocated location and the target symbol or the PLT stub of the target symbol is within range of ±1MiB.
+
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_JUMP_PLT` can be rewritten into a single `JAL` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.jal 0  # R_RISCV_VENDOR QUALCOMM
+                # R_RISCV_QC_E_JUMP_PLT symbol
+                # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    jal ra, 0   # R_RISCV_JAL symbol
+    # 4 bytes
+----
+--
++
+[%unbreakable]
+--
+
+Relaxation candidate:
+[,asm]
+----
+    qc.e.j 0   # R_RISCV_VENDOR QUALCOMM
+               # R_RISCV_QC_E_JUMP_PLT symbol
+               # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    jal x0, 0  # R_RISCV_JAL symbol
+    # 4 bytes
+----
+--
+
+==== Extended to Compressed Function/Tail Call Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_JUMP_PLT
+
+  Description:: This relaxation can relax `QC.E.JAL` or `QC.E.J` into `C.JAL` or `C.J` respectively.
+
+  Condition:: The offset between the relocated location and the target symbol or the PLT stub of the target symbol is within range of ±2KiB.
+
+  Extensions Required:: `Zca`
+
+  Relaxation:: `QC.E.JAL` associated with `R_RISCV_QC_E_JUMP_PLT` can be rewritten into a single `C.JAL` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.jal 0  # R_RISCV_VENDOR QUALCOMM
+                # R_RISCV_QC_E_JUMP_PLT symbol
+                # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    c.jal 0     # R_RISCV_RVC_JUMP symbol
+    # 2 bytes
+----
+--
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.j 0    # R_RISCV_VENDOR QUALCOMM
+                # R_RISCV_QC_E_JUMP_PLT symbol
+                # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    c.j 0       # R_RISCV_RVC_JUMP symbol
+    # 2 bytes
+----
+--
+
+==== Standard to Extended Global-pointer Relaxation
+
+  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_LO12_S, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I, R_RISCV_PCREL_LO12_S
+
+  Description:: This relaxation type can relax a sequence of a load or store with a symbol reference into a global-pointer-relative `qc.e.l*` or `qc.e.s*` instruction respectively.
+
+  Condition:: The offset between the global pointer and the symbol is within range of ±32MiB.
+
+  Extensions Required:: `Xqcilo`
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
+  - Instruction associated with `R_RISCV_LO12_I`, `R_RISCV_LO12_S`, `R_RISCV_PCREL_LO12_I` or `R_RISCV_PCREL_LO12_S` can be replaced with a global-pointer-relative access instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    lui t0, 0     # R_RISCV_HI20 symbol
+                  # R_RISCV_RELAX
+    lw t1, 0(t0)  # R_RISCV_LO12_I symbol
+                  # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.lw t1, <gp-offset-for-symbol>(gp)
+    # 6 bytes
+----
+--
+
+==== Standard to Extended Global-pointer Address Relaxation
+
+  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
+
+  Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into a global-pointer-relative `qc.e.addi` instruction.
+
+  Condition:: The offset between the global pointer and the symbol is within range of ±32MiB.
+
+  Extensions Required:: `Xqcilia`
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
+  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with a global-pointer-relative `QC.E.ADDI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    lui t0, 0       # R_RISCV_HI20 symbol
+                    # R_RISCV_RELAX
+    addi t1, t0, 0  # R_RISCV_LO12_I symbol
+                    # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.addi t1, gp, <gp-offset-for-symbol>
+    # 6 bytes
+----
+--
+
+==== Extended to Standard Global-pointer Address Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32
+
+  Description:: This relaxation type can relax a `qc.e.li` instruction for loading the address of a symbol reference into an `addi` instruction.
+
+  Condition:: The offset between the global pointer and the symbol is within range of ±2KiB.
+
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` can be replaced with an `ADDI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li t1, 0  # R_RISCV_VENDOR QUALCOMM
+                   # R_RISCV_QC_E_32 symbol
+                   # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    addi t1, gp, <gp-offset-for-symbol>
+    # 4 bytes
+----
+--
+
+==== Standard to Extended Zero-page Load/Store Relaxation
+
+  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_LO12_S, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I, R_RISCV_PCREL_LO12_S
+
+  Description:: This relaxation type can relax a sequence of a load or store with a symbol reference into an absolute `qc.e.l*` or `qc.e.s*` instruction respectively.
+
+  Condition:: The symbol address is located within `0x0` ~ `0x03ffffff` or `0xfc000000` ~ `0xffffffff`.
+
+  Extensions Required:: `Xqcilo`
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
+  - Instruction associated with `R_RISCV_LO12_I`, `R_RISCV_LO12_S`, `R_RISCV_PCREL_LO12_I` or `R_RISCV_PCREL_LO12_S` can be replaced with an access instruction relative to `zero`.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    lui t0, 0     # R_RISCV_HI20 symbol
+                  # R_RISCV_RELAX
+    lw t1, 0(t0)  # R_RISCV_LO12_I symbol
+                  # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.lw t1, <address-of-symbol>(zero)
+    # 6 bytes
+----
+--
+
+==== Standard to Extended Address Relaxation
+
+  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
+
+  Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into an absolute `qc.e.li` instruction.
+
+  Extensions Required:: `Xqcili`
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
+  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with a `QC.E.LI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    lui t0, 0       # R_RISCV_HI20 symbol
+                    # R_RISCV_RELAX
+    addi t1, 0(t0)  # R_RISCV_LO12_I symbol
+                    # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.li t1, <address-of-symbol>
+    # 6 bytes
+----
+--
+
+==== Zero-page Address Relaxation
+
+  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
+
+  Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into an absolute `qc.li` instruction.
+
+  Condition:: The symbol address is located within `0x0` ~ `0x000fffff` or `0xfff00000` ~ `0xffffffff`.
+
+  Extensions Required:: `Xqcili`
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
+  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with a `QC.LI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    lui t0, 0       # R_RISCV_HI20 symbol
+                    # R_RISCV_RELAX
+    addi t1, 0(t0)  # R_RISCV_LO12_I symbol
+                    # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.li t1, <address-of-symbol>
+    # 4 bytes
+----
+--
+
+==== Extended to Standard Address Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32
+
+  Description:: This relaxation type can relax a `qc.e.li` instruction for loading the address of a symbol reference into a `qc.li` instruction.
+
+  Condition:: The symbol address is located within `0x0` ~ `0x000fffff` or `0xfff00000` ~ `0xffffffff`.
+
+  Extensions Required:: `Xqcili`
++
+NOTE: In this Relaxation, both the candidate instruction and the result instruction are from the same extension, so this can be performed even when architecture attributes are not available.
+
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` can be replaced with a `QC.LI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li t1, 0  # R_RISCV_VENDOR QUALCOMM
+                   # R_RISCV_QC_E_32 symbol
+                   # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.li t1, <address-of-symbol>
+    # 4 bytes
+----
+--
+
+NOTE: This relaxation could have used `ADDI` as the destination instruction (which is also 4 bytes), but `QC.LI` is valid everywhere `QC.E.LI` is valid, and has a larger immediate range than `ADDI`, which is why we chose `QC.LI` instead.
+
+==== Extended to Compressed Address Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_LO20_U
+
+  Description:: This relaxation type can relax a `qc.e.li` or `qc.li` instruction for loading the address of a symbol reference into a `c.li`.
+
+  Condition:: The symbol address is located within `0x0` ~ `0x3f` or `0xffffffc0` ~ `0xffffffff`.
+
+  Extensions Required:: `Zca`
+
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` or `R_RISCV_QC_LO20_U` can be replaced with a `C.LI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li t1, 0  # R_RISCV_VENDOR QUALCOMM
+                   # R_RISCV_QC_E_32 symbol
+                   # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    c.li t1, <address-of-symbol>
+    # 2 bytes
+----
+--
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.li t1, 0    # R_RISCV_VENDOR QUALCOMM
+                   # R_RISCV_QC_LO20_U symbol
+                   # R_RISCV_RELAX
+    # 4 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    c.li t1, <address-of-symbol>
+    # 2 bytes
+----
+--

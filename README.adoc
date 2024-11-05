@@ -1,12 +1,10 @@
-= RISC-V Specification Template
+= RISC-V ELF psABI - Qualcomm Extensions
 
-This repository serves as a template for creating GitHub repositories within the RISC-V organization for the purpose of developing specifications. It aims to facilitate and standardize the process of specification development.
-
-NOTE: If you are viewing this in a specification repository, kindly update the title for this section and provide an introduction relevant to your repository.
+This repository contains Qualcomm's non-standard extensions to the https://github.com/riscv-non-isa/riscv-elf-psabi-doc[RISC-V ELF psABI]. These are written to support https://github.com/quic/riscv-unified-db[Qualcomm's Public RISC-V Extensions].
 
 == License
 
-This work is licensed under a Creative Commons Attribution 4.0 International License (CC-BY-4.0). For details, see the link:LICENSE[LICENSE] file.
+This work is licensed under the BSD 3-Clause Clear License (BSD-3-Clause-Clear) and the Creative Commons Attribution 4.0 International License (CC-BY-4.0). For details, see the link:LICENSE[LICENSE] file.
 
 == Maintainers
 
@@ -46,13 +44,13 @@ To build the document, you'll need the following tools installed on your system:
 === Cloning the Repository
 
 ```shell
-git clone --recurse-submodules https://github.com/riscv/docs-spec-template.git
+git clone --recurse-submodules https://github.com/quic/riscv-elf-psabi-quic-extensions.git
 ```
 
 All in one single line:
 
 ```shell
-git clone --recurse-submodules https://github.com/riscv/docs-spec-template.git && cd docs-spec-template && git submodule update --init --recursive
+git clone --recurse-submodules https://github.com/quic/riscv-elf-psabi-quic-extensions.git && cd riscv-elf-psabi-quic-extensions && git submodule update --init --recursive
 
 ```
 
@@ -61,7 +59,7 @@ git clone --recurse-submodules https://github.com/riscv/docs-spec-template.git &
 To start the build process, run:
 
 ```shell
-cd ./docs-spec-template && make build
+cd ./riscv-elf-psabi-quic-extensions && make build
 ```
 
 The link:Makefile[] script will check the availability of Docker on your system:

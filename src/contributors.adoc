@@ -1,7 +1,10 @@
+// Copyright (c) 2024, Qualcomm Technologies, Inc. All rights reserved.
+// SPDX-License-Identifier: CC-BY-4.0
 == Contributors
 
-This RISC-V specification has been contributed to directly or indirectly by:
+This RISC-V specification has been contributed to by:
 
 [%hardbreaks]
-* Author1 <required1@email.com>
-* Author2 <required2@email.com>
+* Sam Elliott <aelliott@qti.qualcomm.com>
+
+We express our gratitude to everyone that contributed to, reviewed or improved this specification through their comments and questions.

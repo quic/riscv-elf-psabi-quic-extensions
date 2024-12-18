@@ -33,7 +33,7 @@ NOTE: This table should be read as an addition to the "Relocation types" table i
 
 .2+| 0-191   .2+| _Standard_    .2+| _Varies_ | _Varies_          .2+| Defined in the RISC-V ELF psABI
                                              <|
-.2+| 192     .2+| `LO20_U`      .2+| Static   | _U-Type_          .2+| Low 20 bits of 32-bit absolute address
+.2+| 192     .2+| `ABS20_U`     .2+| Static   | _U-Type_          .2+| (Signed) 20-bit Absolute address
                                              <| S + A
 .2+| 193     .2+| `E_BRANCH`    .2+| Static   | _QC.EB-Type_      .2+| 12-bit PC-relative branch offset (48-bit instruction)
                                              <| S + A - P

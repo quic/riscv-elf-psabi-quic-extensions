@@ -422,7 +422,7 @@ NOTE: This relaxation could have used `ADDI` as the destination instruction (whi
 
 ==== Extended to Compressed Address Relaxation
 
-  Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_LO20_U
+  Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_ABS20_U
 
   Description:: This relaxation type can relax a `qc.e.li` or `qc.li` instruction for loading the address of a symbol reference into a `c.li`.
 
@@ -430,7 +430,7 @@ NOTE: This relaxation could have used `ADDI` as the destination instruction (whi
 
   Extensions Required:: `Zca`
 
-  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` or `R_RISCV_QC_LO20_U` can be replaced with a `C.LI` instruction.
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` or `R_RISCV_QC_ABS20_U` can be replaced with a `C.LI` instruction.
 
   Example::
 +
@@ -459,7 +459,7 @@ Relaxation candidate:
 [,asm]
 ----
     qc.li t1, 0    # R_RISCV_VENDOR QUALCOMM
-                   # R_RISCV_QC_LO20_U symbol
+                   # R_RISCV_QC_ABS20_U symbol
                    # R_RISCV_RELAX
     # 4 bytes
 ----

@@ -1,0 +1,190 @@
+[appendix]
+== Commentary
+
+This section seeks to answer some common questions about the direction we took
+in designing the psABI extension, for clarity and for future reference.
+
+=== Why Have We Not Reused Standard Relocations?
+
+We have where we could, for example for the 32-bit branch-immediate instructions
+in Xqcibi, which use `R_RISCV_BRANCH` relocations.
+
+We cannot for the 48-bit instructions (even though it looks like we might be
+able to, at first glance), for a few reasons:
+
+* QC.EB-type instructions (such as `qc.e.beqi`) where the PC-relative offset is
+laid out in fields that exactly match the standard conditional branch
+instruction (i.e. `beq`). Note these instructions have both an `simm` field --
+which is sign-extended and compared -- and an `imm` field - which will be added
+to the PC to calculate where to branch to. We cannot use `R_RISCV_BRANCH`
+relocations to fill in the PC-relative offset (though the bits being written by
+the relocation are identical), because the linker relaxation process needs to
+know which bytes are part of the relocated instruction, rather than just the
+location of the fields it might be updating. Therefore we add a new relocation
+for these instructions: `R_RISCV_QC_E_BRANCH`.
+
+* QC.EAI-type instructions (such as `qc.e.li`) where the 32-bit immediate is
+laid out in a contiguous field from bits 16-47 of the instruction. We cannot use
+`R_RISCV_32` relocations here, because this is a data relocation, and on big
+endian systems instructions remain little-endian. Using this relocation would
+also cause us the same issues with linker relaxation, as we would not be able to
+easily work out the instruction extents. Therefore we add a new relocation for
+use with `qc.e.li`: `R_RISCV_QC_E_32`.
+
+=== Why Is There Not A Version of the `R_RISCV_QC_E_CALL_PLT` Relocation Without The PLT?
+
+We see the `qc.e.jal` and `qc.e.j` instructions as the equivalent of `call` and
+`tail`, in a single 48-bit instruction. RISC-V originally had two call
+relocations, one for via the PLT and a direct version. Some time later it was
+understood that the non-PLT version is unnecessary, as linkers are allowed to
+omit the PLT entry in certain circumstances (including when static linking) and
+just resolve directly to the symbol in question.
+
+We sought to avoid the same pitfalls of the main RISC-V psABI, so defined only a
+PLT version of the relocation, which linkers can resolve directly to the
+relevant function where appropriate.
+
+
+
+[#no_new_code_model]
+=== Why Have We Not Defined a New Code Model?
+
+The existing RV32 code models focus on addressing the entire 32-bit address
+space -- either using absolute address materialization, or using PC-relative
+address materialization (potentially via a GOT).
+
+Embedded systems tend to have lower requirements on the size of their address
+spaces and also want to use shorter code sequences for address materialization
+within these space constraints (e.g., only using 20-bit addresses).
+
+There are two reasons we have not defined and implemented a code model.
+
+The first reason is it requires a lot of implementation and maintenance across
+the toolchain (compilers, linkers, libraries), which we do not believe is
+justified at this time, especially as this code model will be harder to use than
+the conventional 32-bit models.
+
+The second reason is that there is no clear consensus on what size this smaller
+address space should be within the instructions defined in the RV32 or Xqci
+specifications.
+
+Here are some relevant address materialization options found within RV32 and
+`Xqci`, using a single instruction and glossing over that some of these types
+also have alignment requirements on their immediates:
+
+** Signed 6-bit absolute (RVC CI-type instructions using `x0`)
+** Signed 12-bit absolute (RV32 I-type and S-type instructions using `x0`)
+** Signed 20-bit absolute (Xqci `qc.li`)
+** Signed 32-bit absolute (Xqci `qc.e.li`)
+** Signed 9-bit relative to PC (RVC CB-type)
+** Signed 12-bit relative to PC (RVC CJ-type)
+** Signed 13-bit relative to PC (RV32 B-type and Xqci QC.EB-type)
+** Signed 21-bit relative to PC (RV32 J-type)
+** Signed 32-bit relative to PC (Xqci QC.EJ-type)
+** Signed 6-bit relative to `gp` (RVC CI-type)
+** Signed 12-bit relative to `gp` (RV32 I-type and S-type)
+** Signed 26-bit relative to `gp` (Xqci QC.EI-type and QC.ES-type)
+** Signed 6-bit relative to `sp` (RVC CI-type)
+** Signed 12-bit relative to `sp` (RV32 I-type and S-type)
+** Signed 26-bit relative to `sp` (Xqci QC.EI-type and QC.ES-type)
+** Signed 10-bit relative to `sp` (RVC `c.addi16sp`) 
+** Unsigned 10-bit relative to `sp` (RVC `c.addi4spn`)
+
+From this, it is clear there is no consensus over what size of address space
+lower than 32-bits would actually be useful enough in general for embedded
+projects for support in open source toolchains. Every code model has a
+maintenance overhead, so it is not possible or sustainable for open source
+toolchains to add a new code model for specific embedded projects.
+
+=== Why Are There No Relocations for the 48-bit Load and Store Instructions?
+
+There are a complex series of reasons behind these relating to code models,
+materialization sequences and linker relaxations.
+
+Recall that the `Xqcilo` instructions have the following form, where the address
+that is loaded or stored is within 26-bits of the value in register `rs1`:
+
+[,asm]
+----
+    qc.e.lw rd, simm(rs1)
+----
+
+There are several options for using this to materialize an address.
+
+One is to use this to materialize a full 32-bit address, as the `medlow` and
+`medany` code models require. There is no instruction to materialize the
+remaining 6 bits of the address, so we would need to use `lui` or `auipc` to
+load the top bits into `rs1`. All sequences including `lui` or `auipc` and an
+Xqcilo load or store are equivalent to a shorter code sequence of the `lui` or
+`auipc` followed by a standard load or store, so these sequences do not make
+sense. If there was a 16-bit instruction for materialising the top 6 bits of the
+address, the code sequence would still be 8 bytes long, as it is with the
+conventional sequence.
+
+The reasons for not defining a new code model suitable are described in
+<<no_new_code_model>>.
+
+Another option would be to only allow `rs1` to be `x0`, and materialize an
+absolute 26-bit signed address. This model of relocation, with specific register
+constraints would be new in the psABI. This similarly applies to a GP-relative
+address materialization that would require `rs1` to be `gp`. While GP-relative
+relocations are not per-se new, any that were defined in the past have been
+removed, as they were a binutils linker implementation detail, and since then no
+relocations with register-specific constraints have been added.
+
+This leaves a final option: linker relaxation, which is the direction we have
+chosen to take. With this option, compilers and assemblers emit the existing,
+standard materialisation sequence for load or store consisting of an `lui` or
+`auipc` followed by a load or store, and if the circumstances are right, we can
+relax it to either a `x0` or `gp` relative `Xqcilo` load or store.
+
+In order to support the linker relaxation in the assembler, we have added
+pseudo-instruction versions of the `Xqcilo` loads and stores that take a symbol
+expression (akin to the standard load and store pseudo instructions that take a
+symbol). These emit the standard materialization sequences for the loads and
+stores, with the expectation that if relaxation is enabled they may be turned
+into `Xqcilo` loads and stores. For example:
+
+[,asm]
+----
+    qc.e.lw a0, symbol+addend
+
+    # expands to:
+  .Lpcrel_hi1:
+    auipc a0, %pcrel_hi(symbol+addend) # R_RISCV_RELAX
+    lw a0, %pcrel_lo(.Lpcrel_hi1)(a0)  # R_RISCV_RELAX
+
+    # which may be relaxed to:
+    qc.e.lw a0, symbol+addend(x0)
+----
+
+=== Why Do Some Relaxations Require Adjacent Instructions?
+
+The short answer is that the instruction boundaries are changing, which has
+complex effects.
+
+In particular, sequences where there are branches between the two instructions
+to after the final instruction can get broken, because this offset can get 2
+bytes longer, even when the overall code size is smaller. There are specific
+circumstances where this addition can end up with the offset overflowing
+immediate fields, for example:
+
+[,asm]
+----
+    lui t0, %hi(symbol)
+    beq a0, a1, .+4094
+    lw a0, %lo(symbol)(t0)
+    # 4090 bytes of code
+    ret
+
+    # After relaxing the lui/lw pair to qc.e.lw, the beq becomes invalid:
+    beq a0, a1, .+4096 # this offset is no longer representable
+    qc.e.lw a0, symbol+addend(x0)
+    # 4090 bytes of code
+    ret
+----
+
+If the instructions are adjacent, this is not a problem because there cannot be
+any instructions in between the two instructions. This is a better solution than
+having the linker scan all the code between the `lui` and the `lw`, especially
+as there can be control flow between the two instructions.

@@ -39,11 +39,19 @@ NOTE: This table should be read as an addition to the "Relocation types" table i
                                              <| S + A - P
 .2+| 194     .2+| `E_32`        .2+| Static   | _QC.EAI-Type_     .2+| 32-bit Absolute address
                                              <| S + A
-.2+| 195     .2+| `E_JUMP_PLT`  .2+| Static   | _QC.EJ-Type_      .2+| 32-bit PC-relative function call (via PLT)
+.2+| 195     .2+| `E_CALL_PLT`  .2+| Static   | _QC.EJ-Type_      .2+| 32-bit PC-relative function call (via PLT)
                                              <| S + A - P
 .2+| 196-255 .2+| *Reserved*    .2+|          |                   .2+| Reserved for future use in the Qualcomm Extensions.
                                              <|
 |===
+
+[NOTE]
+--
+There are no relocations for the `Xqcilo` loads and stores.
+This is because they cannot materialise a 32-bit address on their own, and any code sequence including these instructions that could materialise a 32-bit address would be longer than the equivalent sequence that uses an `lui` and a load or store with a 12-bit immediate.
+If we defined 26-bit absolute address relocations, but these would only apply when `rs1` was `zero`, which isn't very helpful.
+We describe relaxations for `Xqcilo` loads and stores, below, but these do not require defined relocation types.
+--
 
 ==== Calculation Symbols
 
@@ -71,7 +79,7 @@ The new instruction types starting _QC_ are defined in he `Xqci` specification c
 
 In addition to the code sequences documented in the RISC-V ELF psABI, the following sequences may also be used by a compiler following this extension, when the corresponding architecture extensions have been enabled.
 
-NOTE: Relocations not used in these code sequences are designed to be used from assembly files, rather than by compilers, as they have restrictions on the addresses that can be materialized.
+NOTE: Relocations not used in these code sequences are designed to be used from assembly files, rather than by compilers, as some have restrictions on the addresses that can be materialized.
 
 ==== Absolute Addresses
 
@@ -89,23 +97,34 @@ NOTE: Relocations not used in these code sequences are designed to be used from 
 
 NOTE: This sequence is only 6 bytes (as opposed to an `lui`/`addi` pair which is 8 bytes). The size overhead of the pair can be reduced in some circumstances, such as when the `addi` is folded into a load or store instruction or when the `lui` is shared between multiple materialisations, so this is not always beneficial.
 
+[%unbreakable]
+--
+20-bit absolute addresses in position dependent code can be loaded with a `qc.li` instruction (part of `Xqcili`) and the corresponding relocation `R_RISCV_QC_ABS20_U`. This requires the `%qc.abs20` specifier on the operand.
+
+[,asm]
+----
+    qc.li a0, %qc.abs20(symbol+addend)  # R_RISCV_VENDOR QUALCOMM
+                                        # R_RISCV_QC_ABS20_U symbol, addend
+----
+--
+
+
 ==== Procedure Calls
 
 [%unbreakable]
 --
-Unconditional 48-bit jump (_QC.EJ-Type_) instructions (in `Xqcilb`) have a `R_RISCV_QC_E_JUMP_PLT` relocation that can represent an even signed 32-bit offset (-2GiB to +2GiB-2) from PC.
+Unconditional 48-bit call (_QC.EJ-Type_) instructions (in `Xqcilb`) have a `R_RISCV_QC_E_CALL_PLT` relocation that can represent an even signed 32-bit offset (-2GiB to +2GiB-2) from PC.
 
 Just like `R_RISCV_CALL_PLT`, it is up to the linker to decide whether this relocation needs a PLT entry, or can directly use the procedure's address.
+Just like `R_RISCV_CALL_PLT`, calling via an instruction that uses this relocation may clobber non-callee-saved registers.
 
 [,asm]
 ----
-    # qc.ecall symbol@plt
     qc.e.jal symbol   # R_RISCV_VENDOR QUALCOMM
-                      # R_RISCV_QC_E_JUMP_PLT symbol
+                      # R_RISCV_QC_E_CALL_PLT symbol
 
-    # qc.e.tail symbol@plt
     qc.e.j symbol   # R_RISCV_VENDOR QUALCOMM
-                    # R_RISCV_QC_E_JUMP_PLT symbol
+                    # R_RISCV_QC_E_CALL_PLT symbol
 ----
 --
 

@@ -1,4 +1,4 @@
-// Copyright (c) 2024, Qualcomm Technologies, Inc. All rights reserved.
+// Copyright (c) 2024-2025, Qualcomm Technologies, Inc. All rights reserved.
 // SPDX-License-Identifier: CC-BY-4.0
 = RISC-V ELF psABI - Qualcomm Extensions
 :company: Qualcomm Technologies, Inc.
@@ -65,7 +65,7 @@ list-of::table[hide_empty_section=true, enhanced_rendering=true]
 [preface]
 == Copyright and license information
 
-Copyright 2024, Qualcomm Technologies, Inc. All rights reserved.
+Copyright 2024-2025, Qualcomm Technologies, Inc. All rights reserved.
 
 This specification is licensed under the Creative Commons Attribution 4.0
 International License (CC-BY-4.0). The full license text is available at

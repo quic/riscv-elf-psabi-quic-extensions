@@ -7,22 +7,25 @@ The RISC-V ELF psABI cite:[riscvelfpsabi] makes specific allocations for non-sta
 
 Currently, this document includes ABI extensions that cover the following of Qualcomm's non-standard RISC-V ISA extension specifications:
 
-* `Xqci` v0.4 cite:[xqcispec], which includes:
-** `Xqcia` v0.2
-** `Xqciac` v0.2
-** `Xqcibi` v0.2
-** `Xqcibm` v0.2
-** `Xqcicli` v0.2
-** `Xqcicm` v0.2
-** `Xqcics` v0.2
-** `Xqcicsr` v0.2
-** `Xqciint` v0.2
-** `Xqcilb` v0.2
-** `Xqcili` v0.2
-** `Xqcilia` v0.2
-** `Xqcilo` v0.2
-** `Xqcilsm` v0.2
-** `Xqcisls` v0.2
+* `Xqci` v0.11.0 cite:[xqcispec], which includes:
+** `Xqcia` v0.7.0
+** `Xqciac` v0.3.0
+** `Xqcibi` v0.2.0
+** `Xqcibm` v0.7.0
+** `Xqcicli` v0.3.0
+** `Xqcicm` v0.2.0
+** `Xqcics` v0.2.0
+** `Xqcicsr` v0.3.0
+** `Xqciint` v0.7.0
+** `Xqciio` v0.1.0
+** `Xqcilb` v0.2.0
+** `Xqcili` v0.2.0
+** `Xqcilia` v0.2.0
+** `Xqcilo` v0.3.0
+** `Xqcilsm` v0.5.0
+** `Xqcisim` v0.2.0
+** `Xqcisls` v0.2.0
+** `Xqcisync` v0.2.0
 
 [NOTE]
 [%unbreakable]
@@ -31,13 +34,7 @@ We have taken a few specific directions for this psABI Extension.
 
 The `Xqci` extension is broadly only defined for the RV32 base ISA, so this ABI is designed for the same. We have not considered 64-bit RISC-V implementations at this time.
 
-Together with the `Xqci` extension designers, we settled on using `e.` to denote 48-bit instructions (you could read this as "extended"), much as the standard ISA uses `c.` to denote 16-bit instructions (read as "compressed"). We follow this through when denoting instruction types which start with _QC.E_, and including "E_" in the relevant vendor relocation names.
-
-We have added brand new (nonstandard) relocations for the 48-bit instructions in `Xqci`. There are two different sets of pertinent instructions in these cases:
-
-* QC.EB-type instructions (such as `qc.e.beqi`) where the PC-relative offset is laid out in fields that exactly match the standard conditional branch instruction (i.e. `beq`). Note these instructions have both an `simm` field -- which is sign-extended and compared -- and an `imm` field - which will be added to the PC to calculate where to branch to. We cannot use `R_RISCV_BRANCH` relocations to fill in the PC-relative offset (though the bits being written by the relocation are identical), because the linker relaxation process needs to know the full extents of the affected instruction, rather than just which bits it might be updating. Therefore we add a new relocation for these instructions.
-
-* QC.EAI-type instructions (such as `qc.e.li`) where the 32-bit immediate is laid out in a contiguous field from bits 16-47 of the instruction. We cannot use `R_RISCV_32` relocations here, because this is a data relocation, and on big endian systems instructions remain little-endian. Using this relocation would also cause us the same issues with linker relaxation, as we would not be able to easily work out the instruction extents. Therefore, we add a relocations for these instructions.
+Together with the `Xqci` extension designers, we settled on using `e.` to denote 48-bit instructions (you could read this as "extended"), much as the standard ISA uses `c.` to denote 16-bit instructions (read as "compressed"). We follow this through when denoting instruction types which start with _QC.E_, and including "E_" in the relevant vendor relocation names for our 48-bit instructions.
 
 We have made no additions to Dynamic relocations as `Xqci` does not add any new whole-program features, just new instructions.
 ====

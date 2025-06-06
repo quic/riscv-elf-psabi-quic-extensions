@@ -8,7 +8,7 @@
 :description: RISC-V ELF psABI - Qualcomm Extensions
 :revdate: 2024-12-09
 :revnumber: 0.1
-:revremark: Development
+:revremark: This document is in Development state.  Change should be expected.
 :revinfo:
 :preface-title: Preamble
 :colophon:
@@ -43,11 +43,11 @@ endif::[]
 [preface]
 == Document Status
 [WARNING]
-.This document is in the link:http://riscv.org/spec-state[Development state]
+.This document is in the link:https://lf-riscv.atlassian.net/wiki/display/HOME/Specification+States[Development state]
 ====
-Expect potential changes. This draft specification is likely to evolve.
-Implementations based on this draft may not conform to the final version of this
-specification.
+Assume everything can change. This draft specification will change before being accepted
+as standard, so implementations made to this draft specification will likely not conform
+to the future standard.
 ====
 
 // [preface]
@@ -79,6 +79,8 @@ include::intro.adoc[]
 include::quic-extensions.adoc[]
 
 include::relaxations.adoc[]
+
+include::commentary.adoc[]
 
 // The index must precede the bibliography
 include::index.adoc[]

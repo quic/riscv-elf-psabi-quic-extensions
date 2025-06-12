@@ -7,25 +7,25 @@ The RISC-V ELF psABI cite:[riscvelfpsabi] makes specific allocations for non-sta
 
 Currently, this document includes ABI extensions that cover the following of Qualcomm's non-standard RISC-V ISA extension specifications:
 
-* `Xqci` v0.11.0 cite:[xqcispec], which includes:
+* `Xqci` v0.13.0 cite:[xqcispec], which includes:
 ** `Xqcia` v0.7.0
 ** `Xqciac` v0.3.0
 ** `Xqcibi` v0.2.0
-** `Xqcibm` v0.7.0
+** `Xqcibm` v0.8.0
 ** `Xqcicli` v0.3.0
 ** `Xqcicm` v0.2.0
 ** `Xqcics` v0.2.0
-** `Xqcicsr` v0.3.0
-** `Xqciint` v0.7.0
+** `Xqcicsr` v0.4.0
+** `Xqciint` v0.10.0
 ** `Xqciio` v0.1.0
 ** `Xqcilb` v0.2.0
 ** `Xqcili` v0.2.0
 ** `Xqcilia` v0.2.0
 ** `Xqcilo` v0.3.0
-** `Xqcilsm` v0.5.0
+** `Xqcilsm` v0.6.0
 ** `Xqcisim` v0.2.0
 ** `Xqcisls` v0.2.0
-** `Xqcisync` v0.2.0
+** `Xqcisync` v0.3.0
 
 [NOTE]
 [%unbreakable]

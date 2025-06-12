@@ -16,7 +16,7 @@ DOCS := \
 	riscv-elf-psabi-quic-extensions.adoc
 
 DATE ?= $(shell date +%Y-%m-%d)
-VERSION ?= 0.1
+VERSION ?= 0.2
 REVMARK ?= Development
 DOCKER_IMG := riscvintl/riscv-docs-base-container-image:latest
 ifneq ($(SKIP_DOCKER),true)

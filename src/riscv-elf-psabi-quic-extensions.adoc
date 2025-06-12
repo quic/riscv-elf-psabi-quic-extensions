@@ -6,8 +6,8 @@
 :doctype: book
 :docgroup: RISC-V Toolchain Team
 :description: RISC-V ELF psABI - Qualcomm Extensions
-:revdate: 2024-12-09
-:revnumber: 0.1
+:revdate: 2025-06-12
+:revnumber: 0.2
 :revremark: This document is in Development state.  Change should be expected.
 :revinfo:
 :preface-title: Preamble

@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.2]
+
 - `QUALCOMM` relocation 192 has been renamed to `R_RISCV_QC_ABS20_U` to reflect
   that this is not part of a HI/LO pair (there is no upper bits counterpart).
   Instead, this makes it clear that this is for materialising absolute addresses

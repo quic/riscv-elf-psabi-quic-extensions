@@ -1,4 +1,7 @@
+// Copyright (c) 2024-2025, Qualcomm Technologies, Inc. All rights reserved.
+// SPDX-License-Identifier: CC-BY-4.0
 [appendix]
+[[commentary]]
 == Commentary
 
 This section seeks to answer some common questions about the direction we took
@@ -69,11 +72,12 @@ address space should be within the instructions defined in the RV32 or Xqci
 specifications.
 
 Here are some relevant address materialization options found within RV32 and
-`Xqci`, using a single instruction and glossing over that some of these types
-also have alignment requirements on their immediates:
+`Xqci`, glossing over that some of these types also have alignment requirements
+on their immediates:
 
 ** Signed 6-bit absolute (RVC CI-type instructions using `x0`)
 ** Signed 12-bit absolute (RV32 I-type and S-type instructions using `x0`)
+** Signed 18-bit absolute (RV32 I-type and S-type with `c.lui`)
 ** Signed 20-bit absolute (Xqci `qc.li`)
 ** Signed 32-bit absolute (Xqci `qc.e.li`)
 ** Signed 9-bit relative to PC (RVC CB-type)

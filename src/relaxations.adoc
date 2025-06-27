@@ -479,17 +479,19 @@ Relaxation result:
 
 NOTE: This relaxation could have used `ADDI` as the destination instruction (which is also 4 bytes), but `QC.LI` is valid everywhere `QC.E.LI` is valid, and has a larger immediate range than `ADDI`, which is why we chose `QC.LI` instead.
 
-==== Extended to Compressed Address Relaxation
+==== Extended to Compressed LUI Relaxation
 
   Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_ABS20_U
 
-  Description:: This relaxation type can relax a `qc.e.li` or `qc.li` instruction for loading the address of a symbol reference into a `c.li`.
+  Description:: This relaxation type can relax a `qc.e.li` or `qc.li` instruction for loading the address of a symbol reference into a `c.lui`.
 
-  Condition:: The symbol address is located within `0x0` ~ `0x3f` or `0xffffffc0` ~ `0xffffffff`.
+  Conditions::
+  - The symbol address can be represented with a `C.LUI` instruction; and
+  - The destination register is not `x0` or `x2`.
 
   Extensions Required:: `Zca`
 
-  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` or `R_RISCV_QC_ABS20_U` can be replaced with a `C.LI` instruction.
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` or `R_RISCV_QC_ABS20_U` can be replaced with a `C.LUI` instruction.
 
   Example::
 +
@@ -507,7 +509,7 @@ Relaxation candidate:
 Relaxation result:
 [,asm]
 ----
-    c.li t1, <address-of-symbol>
+    c.lui t1, <address-of-symbol>
     # 2 bytes
 ----
 --
@@ -526,7 +528,7 @@ Relaxation candidate:
 Relaxation result:
 [,asm]
 ----
-    c.li t1, <address-of-symbol>
+    c.lui t1, <address-of-symbol>
     # 2 bytes
 ----
 --

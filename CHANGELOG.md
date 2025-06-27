@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- The "Extended to Compressed Address Relaxation" is now called "Extended to
+  Compressed LUI Relaxation", and it now replaces the instruction with a `C.LUI`
+  instruction rather than `C.LI` instruction. This should mean the relaxation
+  applies more often, as relatively fewer symbols are expected to fit their
+  address in a `C.LI` than a `C.LUI`.
+
 ## [v0.2]
 
 - `QUALCOMM` relocation 192 has been renamed to `R_RISCV_QC_ABS20_U` to reflect

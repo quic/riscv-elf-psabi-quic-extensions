@@ -162,33 +162,34 @@ into `Xqcilo` loads and stores. For example:
     qc.e.lw a0, symbol+addend(x0)
 ----
 
-=== Why Do Some Relaxations Require Adjacent Instructions?
+=== Why Do Some Relaxations Have Complex Requirements?
 
-The short answer is that the instruction boundaries are changing, which has
-complex effects.
+The following relaxations have fairly complex requirements:
 
-In particular, sequences where there are branches between the two instructions
-to after the final instruction can get broken, because this offset can get 2
-bytes longer, even when the overall code size is smaller. There are specific
-circumstances where this addition can end up with the offset overflowing
-immediate fields, for example:
+** <<relax_complex_1>>,
+** <<relax_complex_2>>,
+** <<relax_complex_3>>, and
+** <<relax_complex_4>>.
 
-[,asm]
-----
-    lui t0, %hi(symbol)
-    beq a0, a1, .+4094
-    lw a0, %lo(symbol)(t0)
-    # 4090 bytes of code
-    ret
+In addition to range requirements which come from the field encodings of the
+destination instructions, they also have two additional requirements, a
+requirement that the pair of replaced instructions is adjacent, and a
+requirement about clobbered registers. Why?
 
-    # After relaxing the lui/lw pair to qc.e.lw, the beq becomes invalid:
-    beq a0, a1, .+4096 # this offset is no longer representable
-    qc.e.lw a0, symbol+addend(x0)
-    # 4090 bytes of code
-    ret
-----
+The adjacency requirement is there to prevent breaking sequences where there are
+branches to or from halfway through the sequence of instructions. These could
+get broken by the relaxation because the branch would then have to branch to
+before the replacement instruction, which may be out of range of the branch
+instruction's offset encoding. Having an adjacency requirement also means we do
+not need to do a control-/data-flow analysis in the linker.
 
-If the instructions are adjacent, this is not a problem because there cannot be
-any instructions in between the two instructions. This is a better solution than
-having the linker scan all the code between the `lui` and the `lw`, especially
-as there can be control flow between the two instructions.
+The clobber requirement is to make sure that there are no other users of the
+partly-materialised value. If there were other uses of the high part after the
+two adjacent instructions, the relaxation would be invalid because we would no
+longer be materialising the reused high part of the address. If the high part is
+clobbered, we know there can be no other users of the high part, allowing us to
+delete that instruction without performing a deeper analysis.
+
+Sadly, the clobber requirement means that the relaxation cannot apply to store
+instructions, as most store sequences do not clobber the high part of the
+materialised address, so it is impossible to prevent it being reused later.

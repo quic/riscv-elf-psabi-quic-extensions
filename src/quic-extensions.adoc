@@ -45,14 +45,6 @@ NOTE: This table should be read as an addition to the "Relocation types" table i
                                              <|
 |===
 
-[NOTE]
---
-There are no relocations for the `Xqcilo` loads and stores.
-This is because they cannot materialise a 32-bit address on their own, and any code sequence including these instructions that could materialise a 32-bit address would be longer than the equivalent sequence that uses an `lui` and a load or store with a 12-bit immediate.
-If we defined 26-bit absolute address relocations, but these would only apply when `rs1` was `zero`, which isn't very helpful.
-We describe relaxations for `Xqcilo` loads and stores, below, but these do not require defined relocation types.
---
-
 ==== Calculation Symbols
 
 Calculation symbols should be interpreted exactly as they are defined in the RISC-V ELF psABI.
@@ -77,9 +69,7 @@ The new instruction types starting _QC_ are defined in he `Xqci` specification c
 
 === Code Sequences
 
-In addition to the code sequences documented in the RISC-V ELF psABI, the following sequences may also be used by a compiler following this extension, when the corresponding architecture extensions have been enabled.
-
-NOTE: Relocations not used in these code sequences are designed to be used from assembly files, rather than by compilers, as some have restrictions on the addresses that can be materialized.
+In addition to the code sequences documented in the RISC-V ELF psABI, the following sequences may also be used by a compiler following this extension, when the corresponding `Xqci` extensions have been enabled.
 
 ==== Absolute Addresses
 
@@ -87,19 +77,33 @@ NOTE: Relocations not used in these code sequences are designed to be used from 
 --
 
 32-bit absolute addresses in position dependent code can be loaded with a `qc.e.li` instruction (part of `Xqcili`) and the corresponding relocation `R_RISCV_QC_E_32`.
+This should be used in the Medium Low Code Model, when Xqcili is available.
 
 [,asm]
 ----
+    # Calculate Address
     qc.e.li a0, symbol+addend   # R_RISCV_VENDOR QUALCOMM
                                 # R_RISCV_QC_E_32 symbol, addend
 ----
 --
 
-NOTE: This sequence is only 6 bytes (as opposed to an `lui`/`addi` pair which is 8 bytes). The size overhead of the pair can be reduced in some circumstances, such as when the `addi` is folded into a load or store instruction or when the `lui` is shared between multiple materialisations, so this is not always beneficial.
+[%unbreakable]
+[NOTE]
+--
+This `qc.e.li` instruction is only 6 bytes, compared to an `lui`/`addi` pair which can be up to 8 bytes.
+
+The size of load or store sequences of e.g. `lui`/`lw` or `lui`/`sw` are up to 8 bytes, compared to up to 10 bytes for e.g. `qc.e.li`/`lw` or `qc.e.li`/`sw` sequences.
+
+The overall size of the `lui`-based pairs are hard to measure, as several instructions can share the same `lui`, but when they do it is much harder to relax the sequence.
+
+Which option of these to emit can be hard to evaluate, as it depends on the layout of the executable, whether relaxation is enabled, and whether the load or store was compressed.
+--
 
 [%unbreakable]
 --
-20-bit absolute addresses in position dependent code can be loaded with a `qc.li` instruction (part of `Xqcili`) and the corresponding relocation `R_RISCV_QC_ABS20_U`. This requires the `%qc.abs20` specifier on the operand.
+20-bit absolute addresses in position dependent code can be loaded with a `qc.li` instruction (part of `Xqcili`) and the corresponding relocation `R_RISCV_QC_ABS20_U`.
+
+NOTE: This Relocation and its operand Specificer (`%qc.abs20`) are designed to be used in assembly, because it cannot be used in code sequences for the existing code models.
 
 [,asm]
 ----

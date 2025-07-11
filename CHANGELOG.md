@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   applies more often, as relatively fewer symbols are expected to fit their
   address in a `C.LI` than a `C.LUI`.
 
+- Relaxations from two 4-byte instructions to one 6-byte instruction have been
+  reviewed and have significantly more conditions.
+
 ## [v0.2]
 
 - `QUALCOMM` relocation 192 has been renamed to `R_RISCV_QC_ABS20_U` to reflect

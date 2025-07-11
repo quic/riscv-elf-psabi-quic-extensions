@@ -10,10 +10,6 @@ All these linker relaxations have an implicit requirement that the base architec
 NOTE: These relaxations are defined to be applied once, rather than the linker relaxing a sequence or group it has already relaxed.
 We do not define a preferential order between relaxations, it is understood that the linker performing relaxation will always choose the smallest of the results for which all the conditions are satisfied. Candidates and results below are annotated with their code size (in bytes).
 
-NOTE: In some places, we require the pair of relaxed instructions to be adjacent.
-This is required when a sequence of instructions is replaced with a shorter single-instruction sequence, but the replacement instruction is longer than the original instructions.
-The restriction is needed because we cannot always extend the length of relative references that might appear middle of the sequence.
-
 ==== Standard to Extended Function/Tail Call Relaxation
 
   Target Relocation:: R_RISCV_CALL_PLT, R_RISCV_CALL
@@ -75,8 +71,6 @@ Relaxation result:
     # 6 bytes
 ----
 --
-
-
 
 ==== Extended to Standard Function/Tail Call Relaxation
 
@@ -181,23 +175,25 @@ Relaxation result:
 ----
 --
 
+[[relax_complex_1,Standard to Extended Global-pointer Load Relaxation]]
 ==== Standard to Extended Global-pointer Relaxation
 
-  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_LO12_S, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I, R_RISCV_PCREL_LO12_S
+  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
 
-  Description:: This relaxation type can relax a sequence of a load or store with a symbol reference into a global-pointer-relative load or store using `qc.e.l*` or `qc.e.s*` instructions respectively.
+  Description:: This relaxation type can relax a sequence of a load with a symbol reference into a global-pointer-relative load using a `qc.e.l*` instruction.
 
   Condition::
   - The offset between the global pointer and the symbol is within range of ±32MiB; and
-  - The `lui` and the load or store are adjacent instructions.
+  - The `lui`/`auipc` and the load are adjacent instructions.
+  - The load uses and clobbers the destination register of `lui`/`auipc`.
 
   Extensions Required:: `Xqcilo`
 
   Relaxation::
   - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
-  - Instruction associated with `R_RISCV_LO12_I`, `R_RISCV_LO12_S`, `R_RISCV_PCREL_LO12_I` or `R_RISCV_PCREL_LO12_S` can be replaced with a global-pointer-relative access instruction.
+  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with a global-pointer-relative access instruction.
 
-  Load Example::
+  Absolute Example::
 +
 [%unbreakable]
 --
@@ -219,16 +215,17 @@ Relaxation result:
 ----
 --
 
-  Store Example::
+  PC-Relative Example::
 +
 [%unbreakable]
 --
 Relaxation candidate:
 [,asm]
 ----
-    lui t0, 0     # R_RISCV_HI20 symbol
+.Lpcrel_0:
+    auipc t0, 0   # R_RISCV_PCREL_HI20 symbol
                   # R_RISCV_RELAX
-    sw t1, 0(t0)  # R_RISCV_LO12_S symbol
+    lw t1, 0(t0)  # R_RISCV_PCREL_LO12_I .Lpcrel_0
                   # R_RISCV_RELAX
     # 8 bytes
 ----
@@ -236,11 +233,12 @@ Relaxation candidate:
 Relaxation result:
 [,asm]
 ----
-    qc.e.sw t1, <gp-offset-for-symbol>(gp)
+    qc.e.lw t1, <gp-offset-for-symbol>(gp)
     # 6 bytes
 ----
 --
 
+[[relax_complex_2,Standard to Extended Global-pointer Address Relaxation]]
 ==== Standard to Extended Global-pointer Address Relaxation
 
   Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
@@ -248,8 +246,9 @@ Relaxation result:
   Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into a global-pointer-relative `qc.e.addi` instruction.
 
   Conditions::
-  - The offset between the global pointer and the symbol is within range of ±32MiB; and
-  - The `lui` and the `addi` are adjacent instructions.
+  - The offset between the global pointer and the symbol is within range of ±32MiB.
+  - The `lui`/`auipc` and the `addi` are adjacent instructions.
+  - The `addi` uses and clobbers the destination register of the `lui`/`auipc` instruction.
 
   Extensions Required:: `Xqcilia`
 
@@ -310,23 +309,26 @@ Relaxation result:
 ----
 --
 
-==== Standard to Extended Zero-page Load/Store Relaxation
+[[relax_complex_3,Standard to Extended Zero-page Load Relaxation]]
+==== Standard to Extended Zero-page Load Relaxation
 
-  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_LO12_S, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I, R_RISCV_PCREL_LO12_S
+  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
 
-  Description:: This relaxation type can relax a sequence of a load or store with a symbol reference into an absolute load or store using `qc.e.l*` or `qc.e.s*` instruction respectively.
+  Description:: This relaxation type can relax a sequence of a load with a symbol reference into an absolute load using `qc.e.l*` instruction.
 
   Conditions::
-  - The symbol address is located within `0x0` ~ `0x03ffffff` or `0xfc000000` ~ `0xffffffff`; and
-  - The `lui` and the load or store are adjacent instructions.
+  - The symbol address is located within `0x0` ~ `0x03ffffff` or `0xfc000000` ~ `0xffffffff`.
+  - The linker is not producing a position-independent output.
+  - The `lui`/`auipc` and the load are adjacent instructions.
+  - The load uses and clobbers the destination register of the `lui`/`auipc`.
 
   Extensions Required:: `Xqcilo`
 
   Relaxation::
   - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
-  - Instruction associated with `R_RISCV_LO12_I`, `R_RISCV_LO12_S`, `R_RISCV_PCREL_LO12_I` or `R_RISCV_PCREL_LO12_S` can be replaced with an access instruction relative to `zero`.
+  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with an access instruction relative to `zero`.
 
-  Load Example::
+  Absolute Example::
 +
 [%unbreakable]
 --
@@ -348,16 +350,17 @@ Relaxation result:
 ----
 --
 
-  Store Example::
+  PC-Relative Example::
 +
 [%unbreakable]
 --
 Relaxation candidate:
 [,asm]
 ----
-    lui t0, 0     # R_RISCV_HI20 symbol
+.Lpcrel_0:
+    auipc t0, 0   # R_RISCV_PCREL_HI20 symbol
                   # R_RISCV_RELAX
-    sw t1, 0(t0)  # R_RISCV_LO12_S symbol
+    lw t1, 0(t0)  # R_RISCV_PCREL_LO12_I .Lpcrel_0
                   # R_RISCV_RELAX
     # 8 bytes
 ----
@@ -365,11 +368,12 @@ Relaxation candidate:
 Relaxation result:
 [,asm]
 ----
-    qc.e.sw t1, <address-of-symbol>(zero)
+    qc.e.lw t1, <address-of-symbol>(zero)
     # 6 bytes
 ----
 --
 
+[[relax_complex_4,Standard to Extended Address Relaxation]]
 ==== Standard to Extended Address Relaxation
 
   Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
@@ -378,7 +382,10 @@ Relaxation result:
 
   Extensions Required:: `Xqcili`
 
-  Condition:: The `lui` and the `addi` are adjacent instructions.
+  Conditions::
+  - The linker is not producing position-independent output.
+  - The `lui`/`auipc` and the `addi` are adjacent instructions.
+  - The `addi` uses and clobbers the destination register of the `lui`/`auipc`.
 
   Relaxation::
   - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
@@ -412,7 +419,9 @@ Relaxation result:
 
   Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into an absolute `qc.li` instruction.
 
-  Condition:: The symbol address is located within `0x0` ~ `0x000fffff` or `0xfff00000` ~ `0xffffffff`.
+  Conditions::
+  - The symbol address is located within `0x0` ~ `0x000fffff` or `0xfff00000` ~ `0xffffffff`.
+  - The linker is not producing position-independent output.
 
   Extensions Required:: `Xqcili`
 
@@ -486,7 +495,7 @@ NOTE: This relaxation could have used `ADDI` as the destination instruction (whi
   Description:: This relaxation type can relax a `qc.e.li` or `qc.li` instruction for loading the address of a symbol reference into a `c.lui`.
 
   Conditions::
-  - The symbol address can be represented with a `C.LUI` instruction; and
+  - The symbol address can be represented with a `C.LUI` instruction.
   - The destination register is not `x0` or `x2`.
 
   Extensions Required:: `Zca`

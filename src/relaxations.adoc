@@ -532,3 +532,38 @@ Relaxation result:
     # 2 bytes
 ----
 --
+
+==== Extended to Standard LUI Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32
+
+  Description:: This relaxation type can relax a `qc.e.li` instruction for loading the address of a symbol reference into an `lui`.
+
+  Conditions::
+  - The symbol address can be represented with an `LUI` instruction.
+  - The destination register is not `x0`.
+
+  Extensions Required:: `Zca`
+
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` can be replaced with a `LUI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li t1, 0  # R_RISCV_VENDOR QUALCOMM
+                   # R_RISCV_QC_E_32 symbol
+                   # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    lui t1, %hi(symbol)
+    # 4 bytes
+----
+--

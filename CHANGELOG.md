@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [v0.3]
+
 - The "Extended to Compressed Address Relaxation" is now called "Extended to
   Compressed LUI Relaxation", and it now replaces the instruction with a `C.LUI`
   instruction rather than `C.LI` instruction. This should mean the relaxation
@@ -18,6 +20,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Guidelines for writing assembly for the Medium Low code model using Xqcili
   have been added.
+
+- Marked the Specification as Stable.
 
 ## [v0.2]
 

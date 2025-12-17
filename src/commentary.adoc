@@ -58,7 +58,7 @@ address materialization (potentially via a GOT).
 
 Embedded systems tend to have lower requirements on the size of their address
 spaces and also want to use shorter code sequences for address materialization
-within these space constraints (e.g., only using 20-bit addresses).
+within these space constraints.
 
 There are two reasons we have not defined and implemented a code model.
 
@@ -91,7 +91,7 @@ on their immediates:
 ** Signed 6-bit relative to `sp` (RVC CI-type)
 ** Signed 12-bit relative to `sp` (RV32 I-type and S-type)
 ** Signed 26-bit relative to `sp` (Xqci QC.EI-type and QC.ES-type)
-** Signed 10-bit relative to `sp` (RVC `c.addi16sp`) 
+** Signed 10-bit relative to `sp` (RVC `c.addi16sp`)
 ** Unsigned 10-bit relative to `sp` (RVC `c.addi4spn`)
 
 From this, it is clear there is no consensus over what size of address space
@@ -115,15 +115,13 @@ that is loaded or stored is within 26-bits of the value in register `rs1`:
 
 There are several options for using this to materialize an address.
 
-One is to use this to materialize a full 32-bit address, as the `medlow` and
-`medany` code models require. There is no instruction to materialize the
-remaining 6 bits of the address, so we would need to use `lui` or `auipc` to
-load the top bits into `rs1`. All sequences including `lui` or `auipc` and an
-Xqcilo load or store are equivalent to a shorter code sequence of the `lui` or
-`auipc` followed by a standard load or store, so these sequences do not make
-sense. If there was a 16-bit instruction for materialising the top 6 bits of the
-address, the code sequence would still be 8 bytes long, as it is with the
-conventional sequence.
+One is to use this to materialize a full 32-bit address, as the existing
+Medium Low and Medium Any code models require. There is no instruction to
+materialize the remaining 6 bits of the address, so we would need to use `lui`
+or `auipc` to load the top bits into `rs1`. All sequences including `lui` or
+`auipc` and an Xqcilo load or store are equivalent to a shorter code sequence of
+the `lui` or `auipc` followed by a standard load or store, so the sequences
+including `Xqcilo` instructions do not make sense.
 
 The reasons for not defining a new code model suitable are described in
 <<no_new_code_model>>.
@@ -136,59 +134,49 @@ relocations are not per-se new, any that were defined in the past have been
 removed, as they were a binutils linker implementation detail, and since then no
 relocations with register-specific constraints have been added.
 
-This leaves a final option: linker relaxation, which is the direction we have
-chosen to take. With this option, compilers and assemblers emit the existing,
-standard materialisation sequence for load or store consisting of an `lui` or
-`auipc` followed by a load or store, and if the circumstances are right, we can
-relax it to either a `x0` or `gp` relative `Xqcilo` load or store.
-
-In order to support the linker relaxation in the assembler, we have added
-pseudo-instruction versions of the `Xqcilo` loads and stores that take a symbol
-expression (akin to the standard load and store pseudo instructions that take a
-symbol). These emit the standard materialization sequences for the loads and
-stores, with the expectation that if relaxation is enabled they may be turned
-into `Xqcilo` loads and stores. For example:
+In order to align with the RVI Base behaviour, we have we have added
+pseudo-instructions with the `Xqcilo` load and store mnemonics that take a
+symbol expression. These emit the standard materialization sequences for the
+equivalent width loads and stores. For example:
 
 [,asm]
 ----
+    # Load Example
     qc.e.lw a0, symbol+addend
 
-    # expands to:
+    # Expands to:
   .Lpcrel_hi1:
-    auipc a0, %pcrel_hi(symbol+addend) # R_RISCV_RELAX
-    lw a0, %pcrel_lo(.Lpcrel_hi1)(a0)  # R_RISCV_RELAX
+    auipc a0, %pcrel_hi(symbol+addend)
+    lw a0, %pcrel_lo(.Lpcrel_hi1)(a0)
 
-    # which may be relaxed to:
-    qc.e.lw a0, symbol+addend(x0)
+    # Store Example
+    qc.e.sw a0, symbol+addend, t1
+
+    # Expands to:
+  .Lpcrel_hi2:
+    auipc t1, %pcrel_hi(symbol+addend)
+    sw a0, %pcrel_lo(.Lpcrel_hi2)(t1)
 ----
 
-=== Why Do Some Relaxations Require Adjacent Instructions?
+=== Assembly Guidelines
 
-The short answer is that the instruction boundaries are changing, which has
-complex effects.
+The Assembler does not have a configuration option to alter its behaviour based
+on using the Medium Low or Medium Any code models (it does have an option to
+emit Medium Any Position-Independent Sequences). This means the `lla` and `la`
+instructions always emit a PC-relative sequence, using `AUIPC`, even in the
+Medium Low code model.
 
-In particular, sequences where there are branches between the two instructions
-to after the final instruction can get broken, because this offset can get 2
-bytes longer, even when the overall code size is smaller. There are specific
-circumstances where this addition can end up with the offset overflowing
-immediate fields, for example:
+When `Xqcili` is available, and the Medium Low code model is being used, we
+suggest using `qc.e.li` instead of `la` or `lla`. The syntax is almost
+identical, but it is much easier to relax `qc.e.li` instructions than
+PC-relative sequences.
 
 [,asm]
 ----
-    lui t0, %hi(symbol)
-    beq a0, a1, .+4094
-    lw a0, %lo(symbol)(t0)
-    # 4090 bytes of code
-    ret
+    # Avoid
+    la  a0, symbol+addend
+    lla a0, symbol+addend
 
-    # After relaxing the lui/lw pair to qc.e.lw, the beq becomes invalid:
-    beq a0, a1, .+4096 # this offset is no longer representable
-    qc.e.lw a0, symbol+addend(x0)
-    # 4090 bytes of code
-    ret
+    # Prefer
+    qc.e.li a0, symbol+addend
 ----
-
-If the instructions are adjacent, this is not a problem because there cannot be
-any instructions in between the two instructions. This is a better solution than
-having the linker scan all the code between the `lui` and the `lw`, especially
-as there can be control flow between the two instructions.

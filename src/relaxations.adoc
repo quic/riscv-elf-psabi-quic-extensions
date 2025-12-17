@@ -10,10 +10,6 @@ All these linker relaxations have an implicit requirement that the base architec
 NOTE: These relaxations are defined to be applied once, rather than the linker relaxing a sequence or group it has already relaxed.
 We do not define a preferential order between relaxations, it is understood that the linker performing relaxation will always choose the smallest of the results for which all the conditions are satisfied. Candidates and results below are annotated with their code size (in bytes).
 
-NOTE: In some places, we require the pair of relaxed instructions to be adjacent.
-This is required when a sequence of instructions is replaced with a shorter single-instruction sequence, but the replacement instruction is longer than the original instructions.
-The restriction is needed because we cannot always extend the length of relative references that might appear middle of the sequence.
-
 ==== Standard to Extended Function/Tail Call Relaxation
 
   Target Relocation:: R_RISCV_CALL_PLT, R_RISCV_CALL
@@ -75,8 +71,6 @@ Relaxation result:
     # 6 bytes
 ----
 --
-
-
 
 ==== Extended to Standard Function/Tail Call Relaxation
 
@@ -181,104 +175,6 @@ Relaxation result:
 ----
 --
 
-==== Standard to Extended Global-pointer Relaxation
-
-  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_LO12_S, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I, R_RISCV_PCREL_LO12_S
-
-  Description:: This relaxation type can relax a sequence of a load or store with a symbol reference into a global-pointer-relative load or store using `qc.e.l*` or `qc.e.s*` instructions respectively.
-
-  Condition::
-  - The offset between the global pointer and the symbol is within range of ±32MiB; and
-  - The `lui` and the load or store are adjacent instructions.
-
-  Extensions Required:: `Xqcilo`
-
-  Relaxation::
-  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
-  - Instruction associated with `R_RISCV_LO12_I`, `R_RISCV_LO12_S`, `R_RISCV_PCREL_LO12_I` or `R_RISCV_PCREL_LO12_S` can be replaced with a global-pointer-relative access instruction.
-
-  Load Example::
-+
-[%unbreakable]
---
-Relaxation candidate:
-[,asm]
-----
-    lui t0, 0     # R_RISCV_HI20 symbol
-                  # R_RISCV_RELAX
-    lw t1, 0(t0)  # R_RISCV_LO12_I symbol
-                  # R_RISCV_RELAX
-    # 8 bytes
-----
-
-Relaxation result:
-[,asm]
-----
-    qc.e.lw t1, <gp-offset-for-symbol>(gp)
-    # 6 bytes
-----
---
-
-  Store Example::
-+
-[%unbreakable]
---
-Relaxation candidate:
-[,asm]
-----
-    lui t0, 0     # R_RISCV_HI20 symbol
-                  # R_RISCV_RELAX
-    sw t1, 0(t0)  # R_RISCV_LO12_S symbol
-                  # R_RISCV_RELAX
-    # 8 bytes
-----
-
-Relaxation result:
-[,asm]
-----
-    qc.e.sw t1, <gp-offset-for-symbol>(gp)
-    # 6 bytes
-----
---
-
-==== Standard to Extended Global-pointer Address Relaxation
-
-  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
-
-  Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into a global-pointer-relative `qc.e.addi` instruction.
-
-  Conditions::
-  - The offset between the global pointer and the symbol is within range of ±32MiB; and
-  - The `lui` and the `addi` are adjacent instructions.
-
-  Extensions Required:: `Xqcilia`
-
-  Relaxation::
-  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
-  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with a global-pointer-relative `QC.E.ADDI` instruction.
-
-  Example::
-+
-[%unbreakable]
---
-Relaxation candidate:
-[,asm]
-----
-    lui t0, 0       # R_RISCV_HI20 symbol
-                    # R_RISCV_RELAX
-    addi t1, t0, 0  # R_RISCV_LO12_I symbol
-                    # R_RISCV_RELAX
-    # 8 bytes
-----
-
-Relaxation result:
-[,asm]
-----
-    qc.e.addi t1, gp, <gp-offset-for-symbol>
-    # 6 bytes
-----
---
-
 ==== Extended to Standard Global-pointer Address Relaxation
 
   Target Relocation:: R_RISCV_QC_E_32
@@ -306,138 +202,6 @@ Relaxation result:
 [,asm]
 ----
     addi t1, gp, <gp-offset-for-symbol>
-    # 4 bytes
-----
---
-
-==== Standard to Extended Zero-page Load/Store Relaxation
-
-  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_LO12_S, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I, R_RISCV_PCREL_LO12_S
-
-  Description:: This relaxation type can relax a sequence of a load or store with a symbol reference into an absolute load or store using `qc.e.l*` or `qc.e.s*` instruction respectively.
-
-  Conditions::
-  - The symbol address is located within `0x0` ~ `0x03ffffff` or `0xfc000000` ~ `0xffffffff`; and
-  - The `lui` and the load or store are adjacent instructions.
-
-  Extensions Required:: `Xqcilo`
-
-  Relaxation::
-  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
-  - Instruction associated with `R_RISCV_LO12_I`, `R_RISCV_LO12_S`, `R_RISCV_PCREL_LO12_I` or `R_RISCV_PCREL_LO12_S` can be replaced with an access instruction relative to `zero`.
-
-  Load Example::
-+
-[%unbreakable]
---
-Relaxation candidate:
-[,asm]
-----
-    lui t0, 0     # R_RISCV_HI20 symbol
-                  # R_RISCV_RELAX
-    lw t1, 0(t0)  # R_RISCV_LO12_I symbol
-                  # R_RISCV_RELAX
-    # 8 bytes
-----
-
-Relaxation result:
-[,asm]
-----
-    qc.e.lw t1, <address-of-symbol>(zero)
-    # 6 bytes
-----
---
-
-  Store Example::
-+
-[%unbreakable]
---
-Relaxation candidate:
-[,asm]
-----
-    lui t0, 0     # R_RISCV_HI20 symbol
-                  # R_RISCV_RELAX
-    sw t1, 0(t0)  # R_RISCV_LO12_S symbol
-                  # R_RISCV_RELAX
-    # 8 bytes
-----
-
-Relaxation result:
-[,asm]
-----
-    qc.e.sw t1, <address-of-symbol>(zero)
-    # 6 bytes
-----
---
-
-==== Standard to Extended Address Relaxation
-
-  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
-
-  Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into an absolute `qc.e.li` instruction.
-
-  Extensions Required:: `Xqcili`
-
-  Condition:: The `lui` and the `addi` are adjacent instructions.
-
-  Relaxation::
-  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
-  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with a `QC.E.LI` instruction.
-
-  Example::
-+
-[%unbreakable]
---
-Relaxation candidate:
-[,asm]
-----
-    lui t0, 0       # R_RISCV_HI20 symbol
-                    # R_RISCV_RELAX
-    addi t1, 0(t0)  # R_RISCV_LO12_I symbol
-                    # R_RISCV_RELAX
-    # 8 bytes
-----
-
-Relaxation result:
-[,asm]
-----
-    qc.e.li t1, <address-of-symbol>
-    # 6 bytes
-----
---
-
-==== Zero-page Address Relaxation
-
-  Target Relocation:: R_RISCV_HI20, R_RISCV_LO12_I, R_RISCV_PCREL_HI20, R_RISCV_PCREL_LO12_I
-
-  Description:: This relaxation type can relax a sequence for loading the address of a symbol reference into an absolute `qc.li` instruction.
-
-  Condition:: The symbol address is located within `0x0` ~ `0x000fffff` or `0xfff00000` ~ `0xffffffff`.
-
-  Extensions Required:: `Xqcili`
-
-  Relaxation::
-  - Instruction associated with `R_RISCV_HI20` or `R_RISCV_PCREL_HI20` can be removed.
-  - Instruction associated with `R_RISCV_LO12_I` or `R_RISCV_PCREL_LO12_I` can be replaced with a `QC.LI` instruction.
-
-  Example::
-+
-[%unbreakable]
---
-Relaxation candidate:
-[,asm]
-----
-    lui t0, 0       # R_RISCV_HI20 symbol
-                    # R_RISCV_RELAX
-    addi t1, 0(t0)  # R_RISCV_LO12_I symbol
-                    # R_RISCV_RELAX
-    # 8 bytes
-----
-
-Relaxation result:
-[,asm]
-----
-    qc.li t1, <address-of-symbol>
     # 4 bytes
 ----
 --
@@ -530,5 +294,38 @@ Relaxation result:
 ----
     c.lui t1, <address-of-symbol>
     # 2 bytes
+----
+--
+
+==== Extended to Standard LUI Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32
+
+  Description:: This relaxation type can relax a `qc.e.li` instruction for loading the address of a symbol reference into an `lui`.
+
+  Condition:: The symbol address can be represented with an `LUI` instruction.
+
+  Extensions Required:: `Zca`
+
+  Relaxation:: Instruction associated with `R_RISCV_QC_E_32` can be replaced with a `LUI` instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li t1, 0  # R_RISCV_VENDOR QUALCOMM
+                   # R_RISCV_QC_E_32 symbol
+                   # R_RISCV_RELAX
+    # 6 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    lui t1, %hi(symbol)
+    # 4 bytes
 ----
 --

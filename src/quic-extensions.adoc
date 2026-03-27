@@ -29,19 +29,23 @@ NOTE: This table should be read as an addition to the "Relocation types" table i
 [cols=">3,6,3,6,11"]
 [width=100%]
 |===
-| Enum          | ELF Reloc Type   | Type     | Field / Calculation  | Description
+| Enum          | ELF Reloc Type   | Type     | Field / Calculation   | Description
 
-.2+| 0-191   .2+| _Standard_    .2+| _Varies_ | _Varies_          .2+| Defined in the RISC-V ELF psABI
+.2+| 0-191   .2+| _Standard_    .2+| _Varies_ | _Varies_           .2+| Defined in the RISC-V ELF psABI
                                              <|
-.2+| 192     .2+| `ABS20_U`     .2+| Static   | _U-Type_          .2+| (Signed) 20-bit Absolute address
+.2+| 192     .2+| `ABS20_U`     .2+| Static   | _U-Type_           .2+| (Signed) 20-bit Absolute address
                                              <| S + A
-.2+| 193     .2+| `E_BRANCH`    .2+| Static   | _QC.EB-Type_      .2+| 12-bit PC-relative branch offset (48-bit instruction)
+.2+| 193     .2+| `E_BRANCH`    .2+| Static   | _QC.EB-Type_       .2+| 12-bit PC-relative branch offset (48-bit instruction)
                                              <| S + A - P
-.2+| 194     .2+| `E_32`        .2+| Static   | _QC.EAI-Type_     .2+| 32-bit Absolute address
+.2+| 194     .2+| `E_32`        .2+| Static   | _QC.EAI-Type_      .2+| 32-bit Absolute address
                                              <| S + A
-.2+| 195     .2+| `E_CALL_PLT`  .2+| Static   | _QC.EJ-Type_      .2+| 32-bit PC-relative function call (via PLT)
+.2+| 195     .2+| `E_CALL_PLT`  .2+| Static   | _QC.EJ-Type_       .2+| 32-bit PC-relative function call (via PLT)
                                              <| S + A - P
-.2+| 196-255 .2+| *Reserved*    .2+|          |                   .2+| Reserved for future use in the Qualcomm Extensions.
+.2+| 196     .2+| `ACCESS_16`   .2+| Static   | 16-Bit Instruction .2+| Relaxation Marker for 16-Bit Instruction (See Below).
+                                             <| None
+.2+| 197     .2+| `ACCESS_32`   .2+| Static   | 32-Bit Instruction .2+| Relaxation Marker for 32-Bit Instruction (See Below).
+                                             <| None
+.2+| 198-255 .2+| *Reserved*    .2+|          |                    .2+| Reserved for future use in the Qualcomm Extensions.
                                              <|
 |===
 
@@ -66,6 +70,20 @@ NOTE: This table should be read as an addition to the "Variables used in relocat
 |===
 
 The new instruction types starting _QC_ are defined in he `Xqci` specification cite:[xqcispec].
+
+==== Relaxation Marker Relocations
+
+We specify two "relaxation marker" relocations, which are used to mark instructions that are part of an access sequence, but that do not modify the relocated instruction during the relocation process.
+
+These relocations are:
+- `R_RISCV_QC_ACCESS_32` for 32-bit instructions; and
+- `R_RISCV_QC_ACCESS_16` for 16-bit instructions.
+
+NOTE: The design of these is based on the `R_RISCV_TPREL_ADD` relocation.
+
+These are given for specific sizes so the linker knows the size of the underlying instruction that can be modified during relaxation.
+
+The symbol and offset in these relocations should be the same as the prior relocation they relate to.
 
 === Code Sequences
 
@@ -96,7 +114,24 @@ The size of load or store sequences of e.g. `lui`/`lw` or `lui`/`sw` are up to 8
 
 The overall size of the `lui`-based pairs are hard to measure, as several instructions can share the same `lui`, but when they do it is much harder to relax the sequence.
 
-Which option of these to emit can be hard to evaluate, as it depends on the layout of the executable, whether relaxation is enabled, and whether the load or store was compressed.
+Which option of these to emit can be hard to evaluate within the compiler, as it depends on the layout of the executable, whether relaxation is enabled, and whether the load or store was compressed.
+--
+
+[%unbreakable]
+--
+Memory Accesses in the Medium Low Code Model which materialise the address for only use in the next access instruction should use `qc.e.li` plus a "relaxation marker" relocation on the access.
+This can only be done if the `qc.e.li` and the access are adjacent, and the access is the only user of the address result of the `qc.e.li`.
+For example:
+
+[,asm]
+----
+    # Calculate Address
+    qc.e.li a0, symbol+addend               # R_RISCV_VENDOR QUALCOMM
+                                            # R_RISCV_QC_E_32 symbol, addend
+    # Load Value
+    lw a0, 0(a0), %qc.access(symbol+addend) # R_RISCV_VENDOR QUALCOMM
+                                            # R_RISCV_QC_ACCESS_32 symbol, addend
+----
 --
 
 [%unbreakable]

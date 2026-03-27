@@ -329,3 +329,259 @@ Relaxation result:
     # 4 bytes
 ----
 --
+
+==== Marked Load/Store to Global Pointer-Relative Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_ACCESS_16, R_RISCV_QC_ACCESS_32
+
+  Description:: This relaxation type can relax a `qc.e.li` followed by a load or store into a GP-relative load or store.
+
+  Condition::
+  - The offset between the global pointer and the symbol is within range of ±2KiB.
+  - The load/store instruction is adjacent to the `qc.e.li` instruction, and there is no branch to between the instructions.
+  - The load/store is the only user of the `qc.e.li` result.
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_QC_E_32` can be deleted.
+  - The Load/Store can be replaced with a RVI Base load/store instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    lw a0, 0(a0)    # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_32 symbol
+                    # R_RISCV_RELAX
+    # 10 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    lw a0, <gp-offset-for-symbol>(gp)
+    # 4 bytes
+----
+--
++
+[%unbreakable]
+--
+This can also be used when the load/store is compressed.
+
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    c.lw a0, 0(a0)  # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_16 symbol
+                    # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    lw a0, <gp-offset-for-symbol>(gp)
+    # 4 bytes
+----
+--
+
+==== Marked Load/Store to Global Pointer-Relative Xqcilo Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_ACCESS_16, R_RISCV_QC_ACCESS_32
+
+  Description:: This relaxation type can relax a `qc.e.li` followed by a load or store into a GP-relative Xqcilo load or store.
+
+  Condition::
+  - The offset between the global pointer and the symbol is within range of ±32MiB.
+  - The load/store instruction is adjacent to the `qc.e.li` instruction, and there is no branch to between the instructions.
+  - The load/store is the only user of the `qc.e.li` result.
+
+  Extensions Required:: `Xqcilo`
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_QC_E_32` can be deleted.
+  - The Load/Store can be replaced with an `Xqcilo` load/store instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    lw a0, 0(a0)    # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_32 symbol
+                    # R_RISCV_RELAX
+    # 10 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.lw a0, <gp-offset-for-symbol>(gp)
+    # 6 bytes
+----
+--
++
+[%unbreakable]
+--
+This can also be used when the load/store is compressed.
+
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    c.lw a0, 0(a0)  # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_16 symbol
+                    # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.lw a0, <gp-offset-for-symbol>(gp)
+    # 6 bytes
+----
+--
+
+==== Marked Load/Store Absolute Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_ACCESS_16, R_RISCV_QC_ACCESS_32
+
+  Description:: This relaxation type can relax a `qc.e.li` followed by a load or store into a load or store.
+
+  Condition::
+  - The symbol address is located within `0x0` ~ `0x000007ff` or `0xfffff800` ~ `0xffffffff`.
+  - The load/store instruction is adjacent to the `qc.e.li` instruction, and there is no branch to between the instructions.
+  - The load/store is the only user of the `qc.e.li` result.
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_QC_E_32` can be deleted.
+  - The Load/Store can be replaced with a RVI Base load/store instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    lw a0, 0(a0)    # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_32 symbol
+                    # R_RISCV_RELAX
+    # 10 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    lw a0, <address-of-symbol>(x0)
+    # 4 bytes
+----
+--
++
+[%unbreakable]
+--
+This can also be used when the load/store is compressed.
+
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    c.lw a0, 0(a0)  # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_16 symbol
+                    # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    lw a0, <address-of-symbol>(x0)
+    # 4 bytes
+----
+--
+
+==== Marked Load/Store Absolute Xqcilo Relaxation
+
+  Target Relocation:: R_RISCV_QC_E_32, R_RISCV_QC_ACCESS_16, R_RISCV_QC_ACCESS_32
+
+  Description:: This relaxation type can relax a `qc.e.li` followed by a load or store into an Xqcilo load or store.
+
+  Condition::
+  - The symbol address is located within `0x0` ~ `0x01ffffff` or `0xfe000000` ~ `0xffffffff`.
+  - The load/store instruction is adjacent to the `qc.e.li` instruction, and there is no branch to between the instructions.
+  - The load/store is the only user of the `qc.e.li` result.
+
+  Extensions Required:: `Xqcilo`
+
+  Relaxation::
+  - Instruction associated with `R_RISCV_QC_E_32` can be deleted.
+  - The Load/Store can be replaced with an `Xqcilo` load/store instruction.
+
+  Example::
++
+[%unbreakable]
+--
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    lw a0, 0(a0)    # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_32 symbol
+                    # R_RISCV_RELAX
+    # 10 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.lw a0, <address-of-symbol>(x0)
+    # 6 bytes
+----
+--
++
+[%unbreakable]
+--
+This can also be used when the load/store is compressed.
+
+Relaxation candidate:
+[,asm]
+----
+    qc.e.li a0, 0   # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_E_32 symbol
+                    # R_RISCV_RELAX
+    c.lw a0, 0(a0)  # R_RISCV_VENDOR QUALCOMM
+                    # R_RISCV_QC_ACCESS_16 symbol
+                    # R_RISCV_RELAX
+    # 8 bytes
+----
+
+Relaxation result:
+[,asm]
+----
+    qc.e.lw a0, <address-of-symbol>(x0)
+    # 6 bytes
+----
+--

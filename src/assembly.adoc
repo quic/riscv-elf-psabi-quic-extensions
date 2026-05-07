@@ -59,9 +59,9 @@ As with the standard load/store pseudos, the value of `rt` is unpredictable afte
 | `qc.e.lw  rd, symbol`       | `qc.e.li rd, symbol` +
                                 `lw  rd, 0(rd), %qc.access(symbol)`
 | `qc.e.sb  rs2, symbol, rt`  | `qc.e.li rt, symbol` +
-                                `sb  rs2, 0(rt)`
+                                `sb  rs2, 0(rt), %qc.access(symbol)`
 | `qc.e.sh  rs2, symbol, rt`  | `qc.e.li rt, symbol` +
-                                `sh  rs2, 0(rt)`
+                                `sh  rs2, 0(rt), %qc.access(symbol)`
 | `qc.e.sw  rs2, symbol, rt`  | `qc.e.li rt, symbol` +
-                                `sw  rs2, 0(rt)`
+                                `sw  rs2, 0(rt), %qc.access(symbol)`
 |===

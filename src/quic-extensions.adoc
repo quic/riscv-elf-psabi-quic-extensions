@@ -69,7 +69,7 @@ NOTE: This table should be read as an addition to the "Variables used in relocat
 | _QC.ES-Type_  | Specifies the immediate field in an QC.ES-type instruction
 |===
 
-The new instruction types starting _QC_ are defined in he `Xqci` specification cite:[xqcispec].
+The new instruction types starting _QC_ are defined in the `Xqci` specification cite:[xqcispec].
 
 ==== Relaxation Marker Relocations
 
@@ -83,7 +83,7 @@ NOTE: The design of these is based on the `R_RISCV_TPREL_ADD` relocation.
 
 These are given for specific sizes so the linker knows the size of the underlying instruction that can be modified during relaxation.
 
-The symbol and offset in these relocations should be the same as the prior relocation they relate to.
+The symbol and addend in these relocations should be the same as the prior relocation they relate to. If there is a non-zero offset in the access instruction, it should not be included in the access relocation addend.
 
 === Code Sequences
 

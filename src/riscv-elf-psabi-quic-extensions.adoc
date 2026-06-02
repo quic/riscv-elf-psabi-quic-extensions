@@ -78,6 +78,8 @@ include::quic-extensions.adoc[]
 
 include::relaxations.adoc[]
 
+include::assembly.adoc[]
+
 include::commentary.adoc[]
 
 // The index must precede the bibliography

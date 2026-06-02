@@ -1,0 +1,67 @@
+// Copyright (c) 2024-2025, Qualcomm Technologies, Inc. All rights reserved.
+// SPDX-License-Identifier: CC-BY-4.0
+[appendix]
+[[assembly-extensions]]
+== Assembly Extensions for Xqci
+
+=== Relocation Specifiers
+
+==== `%qc.abs20` Specifier
+
+Used with `qc.li` (`Xqcili`) to emit `R_RISCV_QC_ABS20_U`:
+
+[,asm]
+----
+    qc.li rd, %qc.abs20(symbol)     # R_RISCV_VENDOR QUALCOMM
+                                    # R_RISCV_QC_ABS20_U symbol
+----
+
+==== `%qc.access` Specifier
+
+Used with RVI, Zca, and Zcb load and store instructions to emit a relaxation marker relocation (see <<relaxations>>). It does not modify the instruction encoding. The relocation emitted depends on the instruction width:
+
+* 32-bit instructions: `R_RISCV_QC_ACCESS_32`
+* 16-bit (compressed) instructions: `R_RISCV_QC_ACCESS_16`
+
+.Instructions accepting `%qc.access`
+[%autowidth, options="header"]
+|===
+| Instructions | Extension | Relocation
+
+| `lb`, `lbu`, `lh`, `lhu`, `lw`, `sb`, `sh`, `sw`             | RVI  | `R_RISCV_QC_ACCESS_32`
+| `c.lw`, `c.sw`                                               | `Zca` | `R_RISCV_QC_ACCESS_16`
+| `c.lbu`, `c.lh`, `c.lhu`, `c.sb`, `c.sh`                     | `Zcb` | `R_RISCV_QC_ACCESS_16`
+|===
+
+=== Pseudo-Instructions
+
+==== Xqcilo: Load and Store Pseudos with Symbol
+
+There are Load and Store Pseudos which take a symbol operand, to go with the `Xqcilo` load and store instructions. These require `Xqcilo` and `Xqcili` to be enabled.
+
+These pseudos expand to `qc.e.li` followed by a standard RVI access with a `%qc.access` specifier. The load or store instructions may be compressed, depending on the enabled architecture. These sequences are chosen to enable linker relaxation.
+
+As with the standard load/store pseudos, the value of `rt` is unpredictable after these instructions.
+
+.Xqcilo pseudo-instruction expansions
+[%autowidth, options="header"]
+|===
+| Pseudo-instruction          | Expansion
+
+| `qc.e.lb  rd, symbol`       | `qc.e.li rd, symbol` +
+                                `lb  rd, 0(rd), %qc.access(symbol)`
+| `qc.e.lbu rd, symbol`       | `qc.e.li rd, symbol` +
+                                `lbu rd, 0(rd), %qc.access(symbol)`
+| `qc.e.lh  rd, symbol`       | `qc.e.li rd, symbol` +
+                                `lh  rd, 0(rd), %qc.access(symbol)`
+| `qc.e.lhu rd, symbol`       | `qc.e.li rd, symbol` +
+                                `lhu rd, 0(rd), %qc.access(symbol)`
+| `qc.e.lw  rd, symbol`       | `qc.e.li rd, symbol` +
+                                `lw  rd, 0(rd), %qc.access(symbol)`
+| `qc.e.sb  rs2, symbol, rt`  | `qc.e.li rt, symbol` +
+                                `sb  rs2, 0(rt), %qc.access(symbol)`
+| `qc.e.sh  rs2, symbol, rt`  | `qc.e.li rt, symbol` +
+                                `sh  rs2, 0(rt), %qc.access(symbol)`
+| `qc.e.sw  rs2, symbol, rt`  | `qc.e.li rt, symbol` +
+                                `sw  rs2, 0(rt), %qc.access(symbol)`
+|===

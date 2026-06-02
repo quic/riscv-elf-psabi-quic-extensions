@@ -7,6 +7,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+- Added QC_ACCESS Marker Relocations, to enable Relaxing memory access sequences
+  to Zero- or GP-relative RVI or Xqcilo access instructions.
+
+- Added an appendix describing the assembly extensions to go with this ABI.
+
 ## [v0.3]
 
 - The "Extended to Compressed Address Relaxation" is now called "Extended to

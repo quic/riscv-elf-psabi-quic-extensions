@@ -13,7 +13,7 @@
 # Qualcomm's Extensions to the RISC-V ELF psABI.
 
 DOCS := \
-	riscv-elf-psabi-quic-extensions.adoc
+	riscv-elf-psabi-qualcomm-extensions.adoc
 
 DATE ?= $(shell date +%Y-%m-%d)
 VERSION ?= 0.3

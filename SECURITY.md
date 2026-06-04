@@ -3,7 +3,7 @@ How to Report a Potential Vulnerability?
 
 If you would like to report a public issue (for example, one with a released
 CVE number), please report it as a
-[GitHub issue](https://github.com/qualcomm/riscv-elf-psabi-qualcomm-extensions/issues/new).
+[GitHub issue](https://github.com/qualcomm/riscv-elf-psabi-quic-extensions/issues/new).
 If you have a patch ready, submit it following the same procedure as any
 other patch as described in [CONTRIBUTING.md](CONTRIBUTING.md).
 

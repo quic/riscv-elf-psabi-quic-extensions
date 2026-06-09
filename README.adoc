@@ -44,13 +44,13 @@ To build the document, you'll need the following tools installed on your system:
 === Cloning the Repository
 
 ```shell
-git clone --recurse-submodules https://github.com/quic/riscv-elf-psabi-quic-extensions.git
+git clone --recurse-submodules https://github.com/qualcomm/riscv-elf-psabi-quic-extensions.git
 ```
 
 All in one single line:
 
 ```shell
-git clone --recurse-submodules https://github.com/quic/riscv-elf-psabi-quic-extensions.git && cd riscv-elf-psabi-quic-extensions && git submodule update --init --recursive
+git clone --recurse-submodules https://github.com/qualcomm/riscv-elf-psabi-quic-extensions.git && cd riscv-elf-psabi-quic-extensions && git submodule update --init --recursive
 
 ```
 
